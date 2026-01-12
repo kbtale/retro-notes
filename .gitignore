@@ -1,6 +1,8 @@
 # compiled output
-/dist
-/node_modules
+dist/
+**/dist/
+node_modules/
+**/node_modules/
 
 # logs
 logs
@@ -15,11 +17,13 @@ lerna-debug.log*
 Thumbs.db
 
 # tests
-/coverage
-/.nyc_output
+coverage/
+**/coverage/
+.nyc_output/
+**/.nyc_output/
 
 # IDEs and tools
-/.idea
+.idea/
 .project
 .classpath
 .c9/
@@ -39,6 +43,7 @@ Thumbs.db
 .env.production.local
 .env.local
 .env.*
+**/ .env*
 
 # persistence
 pids
