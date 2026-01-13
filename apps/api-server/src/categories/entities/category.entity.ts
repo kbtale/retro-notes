@@ -1,4 +1,9 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToMany } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToMany
+} from 'typeorm';
 import { Note } from '../../notes/entities/note.entity';
 
 @Entity('categories')
