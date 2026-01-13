@@ -1,0 +1,17 @@
+{
+  "name": "retro-notes",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "docker:db": "docker-compose up -d db",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "dev:api": "npm run start:dev -w api-server",
+    "dev:web": "npm run dev -w web-app",
+    "dev": "npm run docker:up && npm run dev:api & npm run dev:web",
+    "install:all": "npm install"
+  }
+}
