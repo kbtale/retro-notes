@@ -4,7 +4,7 @@ import {
   Column,
   OneToMany,
   CreateDateColumn,
-  UpdateDateColumn
+  UpdateDateColumn,
 } from 'typeorm';
 import { Note } from '../../notes/entities/note.entity';
 

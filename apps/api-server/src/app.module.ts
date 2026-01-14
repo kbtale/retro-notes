@@ -16,7 +16,7 @@ import { CategoriesModule } from './categories/categories.module';
         type: 'postgres',
         url: configService.getOrThrow<string>('DATABASE_URL'),
         autoLoadEntities: true,
-        synchronize: false, 
+        synchronize: false,
       }),
     }),
 

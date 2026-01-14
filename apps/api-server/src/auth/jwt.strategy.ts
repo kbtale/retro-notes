@@ -15,10 +15,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   // The object returned here is what NestJS injects into 'req.user'.
-  async validate(payload: JwtPayload): Promise<{ userId: number; username: string }> {
-    return { 
-      userId: payload.sub, 
-      username: payload.username 
+  validate(payload: JwtPayload): { userId: number; username: string } {
+    return {
+      userId: payload.sub,
+      username: payload.username,
     };
   }
 }

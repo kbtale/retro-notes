@@ -4,7 +4,11 @@ import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { User } from '@/users/entities/user.entity';
-import { ValidatedUser, JwtPayload, LoginResponse } from './interfaces/auth.interface';
+import {
+  ValidatedUser,
+  JwtPayload,
+  LoginResponse,
+} from './interfaces/auth.interface';
 
 @Injectable()
 export class AuthService {
@@ -14,7 +18,10 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  async validateUser(username: string, pass: string): Promise<ValidatedUser | null> {
+  async validateUser(
+    username: string,
+    pass: string,
+  ): Promise<ValidatedUser | null> {
     const user = await this.usersRepository.findOne({ where: { username } });
 
     if (user && (await bcrypt.compare(pass, user.passwordHash))) {
@@ -29,7 +36,7 @@ export class AuthService {
     return null;
   }
 
-  async login(user: ValidatedUser): Promise<LoginResponse> {
+  login(user: ValidatedUser): LoginResponse {
     const payload: JwtPayload = { username: user.username, sub: user.id };
     return {
       access_token: this.jwtService.sign(payload),

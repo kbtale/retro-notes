@@ -39,8 +39,9 @@ async function run() {
     });
 
     await userRepository.save(admin);
-    console.log('✅ Seed successful: Created user "admin" with password "admin123"');
-
+    console.log(
+      '🌱 Seed successful: Created user "admin" with password "admin123"',
+    );
   } catch (error) {
     console.error('❌ Seed failed:', error);
   } finally {
@@ -49,4 +50,7 @@ async function run() {
   }
 }
 
-run();
+run().catch((error) => {
+  console.error('❌ Unexpected error during seeding:', error);
+  process.exit(1);
+});
