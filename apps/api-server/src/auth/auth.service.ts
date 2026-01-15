@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
@@ -7,8 +7,8 @@ import { User } from '@/users/entities/user.entity';
 import {
     ValidatedUser,
     JwtPayload,
-    LoginResponse,
 } from './interfaces/auth.interface';
+import { RegisterDto } from './dto/register.dto';
 
 @Injectable()
 export class AuthService {
@@ -38,10 +38,36 @@ export class AuthService {
         return null;
     }
 
-    login(user: ValidatedUser): LoginResponse {
+    generateToken(user: ValidatedUser): string {
         const payload: JwtPayload = { username: user.username, sub: user.id };
+        return this.jwtService.sign(payload);
+    }
+
+    async register(registerDto: RegisterDto): Promise<ValidatedUser> {
+        const existingUser = await this.usersRepository.findOne({
+            where: { username: registerDto.username },
+        });
+
+        if (existingUser) {
+            throw new ConflictException('Username already exists');
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const passwordHash = await bcrypt.hash(registerDto.password, salt);
+
+        const user = this.usersRepository.create({
+            username: registerDto.username,
+            passwordHash,
+        });
+
+        const savedUser = await this.usersRepository.save(user);
+
         return {
-            access_token: this.jwtService.sign(payload),
+            id: savedUser.id,
+            username: savedUser.username,
+            createdAt: savedUser.createdAt,
+            updatedAt: savedUser.updatedAt,
         };
     }
 }
+
