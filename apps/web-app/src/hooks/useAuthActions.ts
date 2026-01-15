@@ -1,8 +1,6 @@
 import { useContext } from 'react';
-import {
-    AuthActionsContext,
-    type AuthActions,
-} from '@/context/AuthActionsContext';
+import { AuthActionsContext } from '@/context/AuthActionsContext';
+import type { AuthActions } from '@/types';
 
 export function useAuthActions(): AuthActions {
     const context = useContext(AuthActionsContext);

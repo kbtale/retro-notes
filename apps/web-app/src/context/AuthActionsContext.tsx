@@ -1,11 +1,7 @@
 import { createContext } from 'react';
+import type { AuthActions } from '@/types';
 
-export interface AuthActions {
-    login: (username: string, password: string) => Promise<void>;
-    logout: () => Promise<void>;
-    checkAuth: () => Promise<void>;
-}
+export const AuthActionsContext = createContext<AuthActions | undefined>(undefined);
 
-export const AuthActionsContext = createContext<AuthActions | undefined>(
-    undefined,
-);
+// Re-export types for backward compatibility
+export type { AuthActions } from '@/types';

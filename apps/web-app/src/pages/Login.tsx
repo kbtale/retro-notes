@@ -1,6 +1,10 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthActions } from '@/hooks/useAuthActions';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/8bit/card';
+import { Input } from '@/components/ui/8bit/input';
+import { Button } from '@/components/ui/8bit/button';
+import { Alert, AlertDescription } from '@/components/ui/8bit/alert';
 
 interface LocationState {
     from?: { pathname: string };
@@ -34,58 +38,60 @@ export function LoginPage(): ReactNode {
     }
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-gray-900">
-            <div className="w-full max-w-md p-8 bg-gray-800 rounded-lg shadow-lg">
-                <h1 className="mb-6 text-2xl font-bold text-center text-white">
-                    Login
-                </h1>
-                <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
-                    {error && (
-                        <div className="p-3 text-sm text-red-400 bg-red-900/50 rounded">
-                            {error}
+        <div className="flex min-h-screen items-center justify-center bg-background p-4">
+            <Card className="w-full max-w-md">
+                <CardHeader className="text-center">
+                    <CardTitle className="text-2xl">RetroNotes</CardTitle>
+                    <CardDescription>Sign in to your account</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={(e) => void handleSubmit(e)} className="flex flex-col gap-4">
+                        {error && (
+                            <Alert variant="destructive">
+                                <AlertDescription>{error}</AlertDescription>
+                            </Alert>
+                        )}
+
+                        <div className="flex flex-col gap-2">
+                            <label htmlFor="username" className="retro text-sm">
+                                Username
+                            </label>
+                            <Input
+                                id="username"
+                                type="text"
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
+                                placeholder="Enter your username"
+                                required
+                                autoComplete="username"
+                            />
                         </div>
-                    )}
-                    <div>
-                        <label
-                            htmlFor="username"
-                            className="block mb-1 text-sm text-gray-300"
+
+                        <div className="flex flex-col gap-2">
+                            <label htmlFor="password" className="retro text-sm">
+                                Password
+                            </label>
+                            <Input
+                                id="password"
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="Enter your password"
+                                required
+                                autoComplete="current-password"
+                            />
+                        </div>
+
+                        <Button
+                            type="submit"
+                            disabled={isSubmitting}
+                            className="mt-2 w-full"
                         >
-                            Username
-                        </label>
-                        <input
-                            id="username"
-                            type="text"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label
-                            htmlFor="password"
-                            className="block mb-1 text-sm text-gray-300"
-                        >
-                            Password
-                        </label>
-                        <input
-                            id="password"
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required
-                        />
-                    </div>
-                    <button
-                        type="submit"
-                        disabled={isSubmitting}
-                        className="w-full py-2 px-4 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                        {isSubmitting ? 'Signing in...' : 'Sign In'}
-                    </button>
-                </form>
-            </div>
+                            {isSubmitting ? 'Signing in...' : 'Sign In'}
+                        </Button>
+                    </form>
+                </CardContent>
+            </Card>
         </div>
     );
 }
