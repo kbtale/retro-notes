@@ -1,15 +1,15 @@
 export interface JwtPayload {
-  username: string;
-  sub: number;
+    username: string;
+    sub: number;
 }
 
 export interface LoginResponse {
-  access_token: string;
+    access_token: string;
 }
 
 export interface ValidatedUser {
-  id: number;
-  username: string;
-  createdAt: Date;
-  updatedAt: Date;
+    id: number;
+    username: string;
+    createdAt: Date;
+    updatedAt: Date;
 }

@@ -3,12 +3,12 @@ import { Note } from '../../notes/entities/note.entity';
 
 @Entity('categories')
 export class Category {
-  @PrimaryGeneratedColumn()
-  id: number;
+    @PrimaryGeneratedColumn()
+    id: number;
 
-  @Column({ unique: true })
-  name: string;
+    @Column({ unique: true })
+    name: string;
 
-  @ManyToMany(() => Note, (note) => note.categories)
-  notes: Note[];
+    @ManyToMany(() => Note, (note) => note.categories)
+    notes: Note[];
 }
