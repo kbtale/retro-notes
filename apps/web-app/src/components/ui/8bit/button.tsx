@@ -14,9 +14,9 @@ export const buttonVariants = cva("", {
       retro: "retro",
     },
     variant: {
-      default: "bg-foreground",
-      destructive: "bg-foreground",
-      outline: "bg-foreground",
+      default: "bg-foreground text-background hover:bg-foreground/90",
+      destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+      outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
       secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
       ghost: "hover:bg-accent hover:text-accent-foreground",
       link: "text-primary underline-offset-4 hover:underline",
@@ -48,6 +48,7 @@ function Button({ children, asChild, ...props }: BitButtonProps) {
     <ShadcnButton
       {...props}
       className={cn(
+        buttonVariants({ variant, size, font }),
         "rounded-none active:translate-y-1 transition-transform relative inline-flex items-center justify-center gap-1.5 border-none m-1.5",
         size === "icon" && "mx-1 my-0",
         font !== "normal" && "retro",
