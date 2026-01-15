@@ -1,13 +1,7 @@
 import { createContext } from 'react';
-
-export interface User {
-    id: number;
-    username: string;
-}
-
-export interface AuthState {
-    user: User | null;
-    isLoading: boolean;
-}
+import type { AuthState } from '@/types';
 
 export const AuthStateContext = createContext<AuthState | undefined>(undefined);
+
+// Re-export types for backward compatibility
+export type { AuthState, User } from '@/types';

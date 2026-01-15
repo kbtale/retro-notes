@@ -1,13 +1,8 @@
-import {
-    useState,
-    useCallback,
-    useEffect,
-    useMemo,
-    type ReactNode,
-} from 'react';
-import { apiClient } from '@/api/client';
-import { AuthStateContext, type User } from './AuthStateContext';
+import { useState, useCallback, useEffect, useMemo, type ReactNode } from 'react';
+import * as authApi from '@/api/auth.api';
+import { AuthStateContext } from './AuthStateContext';
 import { AuthActionsContext } from './AuthActionsContext';
+import type { User } from '@/types';
 
 interface AuthProviderProps {
     children: ReactNode;
@@ -19,10 +14,8 @@ export function AuthProvider({ children }: AuthProviderProps): ReactNode {
 
     const checkAuth = useCallback(async (): Promise<void> => {
         try {
-            const response = await apiClient.get<{ id: number; username: string }>(
-                '/auth/me',
-            );
-            setUser(response.data);
+            const userData = await authApi.checkAuthStatus();
+            setUser(userData);
         } catch {
             setUser(null);
         } finally {
@@ -32,17 +25,14 @@ export function AuthProvider({ children }: AuthProviderProps): ReactNode {
 
     const login = useCallback(
         async (username: string, password: string): Promise<void> => {
-            const response = await apiClient.post<{
-                success: boolean;
-                user: User;
-            }>('/auth/login', { username, password });
-            setUser(response.data.user);
+            const userData = await authApi.login(username, password);
+            setUser(userData);
         },
-        [],
+        []
     );
 
     const logout = useCallback(async (): Promise<void> => {
-        await apiClient.post('/auth/logout');
+        await authApi.logout();
         setUser(null);
     }, []);
 
@@ -52,12 +42,12 @@ export function AuthProvider({ children }: AuthProviderProps): ReactNode {
 
     const stateValue = useMemo(
         () => ({ user, isLoading }),
-        [user, isLoading],
+        [user, isLoading]
     );
 
     const actionsValue = useMemo(
         () => ({ login, logout, checkAuth }),
-        [login, logout, checkAuth],
+        [login, logout, checkAuth]
     );
 
     return (
