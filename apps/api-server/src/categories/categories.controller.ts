@@ -7,11 +7,15 @@ import {
     Param,
     Delete,
     UseGuards,
+    ParseIntPipe,
 } from '@nestjs/common';
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
+import { GetUser } from '@/auth/decorators/get-user.decorator';
+import { User } from '@/users/entities/user.entity';
+import { Category } from './entities/category.entity';
 
 @Controller('categories')
 @UseGuards(JwtAuthGuard)
@@ -19,30 +23,40 @@ export class CategoriesController {
     constructor(private readonly categoriesService: CategoriesService) {}
 
     @Post()
-    create(@Body() createCategoryDto: CreateCategoryDto) {
-        return this.categoriesService.create(createCategoryDto);
+    create(
+        @GetUser() user: User,
+        @Body() createCategoryDto: CreateCategoryDto,
+    ): Promise<Category> {
+        return this.categoriesService.create(user, createCategoryDto);
     }
 
     @Get()
-    findAll() {
-        return this.categoriesService.findAll();
+    findAll(@GetUser() user: User): Promise<Category[]> {
+        return this.categoriesService.findAllForUser(user);
     }
 
     @Get(':id')
-    findOne(@Param('id') id: string) {
-        return this.categoriesService.findOne(parseInt(id));
+    findOne(
+        @GetUser() user: User,
+        @Param('id', ParseIntPipe) id: number,
+    ): Promise<Category> {
+        return this.categoriesService.findOne(user, id);
     }
 
     @Patch(':id')
     update(
-        @Param('id') id: string,
+        @GetUser() user: User,
+        @Param('id', ParseIntPipe) id: number,
         @Body() updateCategoryDto: UpdateCategoryDto,
-    ) {
-        return this.categoriesService.update(parseInt(id), updateCategoryDto);
+    ): Promise<Category> {
+        return this.categoriesService.update(user, id, updateCategoryDto);
     }
 
     @Delete(':id')
-    remove(@Param('id') id: string) {
-        return this.categoriesService.remove(parseInt(id));
+    remove(
+        @GetUser() user: User,
+        @Param('id', ParseIntPipe) id: number,
+    ): Promise<void> {
+        return this.categoriesService.remove(user, id);
     }
 }

@@ -11,7 +11,7 @@ const dataSource = new DataSource({
     type: 'postgres',
     url: process.env.DATABASE_URL,
     entities: [User, Note, Category],
-    synchronize: false,
+    synchronize: true,
 });
 
 async function run() {
