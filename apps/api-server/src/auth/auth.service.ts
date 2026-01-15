@@ -7,7 +7,6 @@ import { User } from '@/users/entities/user.entity';
 import {
     ValidatedUser,
     JwtPayload,
-    LoginResponse,
 } from './interfaces/auth.interface';
 import { RegisterDto } from './dto/register.dto';
 
@@ -39,14 +38,12 @@ export class AuthService {
         return null;
     }
 
-    login(user: ValidatedUser): LoginResponse {
+    generateToken(user: ValidatedUser): string {
         const payload: JwtPayload = { username: user.username, sub: user.id };
-        return {
-            access_token: this.jwtService.sign(payload),
-        };
+        return this.jwtService.sign(payload);
     }
 
-    async register(registerDto: RegisterDto): Promise<LoginResponse> {
+    async register(registerDto: RegisterDto): Promise<ValidatedUser> {
         const existingUser = await this.usersRepository.findOne({
             where: { username: registerDto.username },
         });
@@ -65,12 +62,11 @@ export class AuthService {
 
         const savedUser = await this.usersRepository.save(user);
 
-        const payload: JwtPayload = {
-            username: savedUser.username,
-            sub: savedUser.id,
-        };
         return {
-            access_token: this.jwtService.sign(payload),
+            id: savedUser.id,
+            username: savedUser.username,
+            createdAt: savedUser.createdAt,
+            updatedAt: savedUser.updatedAt,
         };
     }
 }

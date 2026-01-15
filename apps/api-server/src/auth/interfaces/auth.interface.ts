@@ -3,8 +3,12 @@ export interface JwtPayload {
     sub: number;
 }
 
-export interface LoginResponse {
-    access_token: string;
+export interface AuthResponse {
+    success: boolean;
+    user: {
+        id: number;
+        username: string;
+    };
 }
 
 export interface ValidatedUser {
