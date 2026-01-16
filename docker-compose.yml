@@ -6,27 +6,54 @@ services:
     container_name: re_note_db
     restart: always
     environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-retronotes}
     ports:
-      - "${DB_PORT}:5432"
+      - "${DB_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-retronotes}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   api-server:
-    build: ./apps/api-server
+    build: 
+      context: .
+      dockerfile: ./apps/api-server/Dockerfile
     container_name: re_note_backend
     ports:
-      - "3000:3000"
+      - "${API_PORT:-3000}:3000"
     environment:
-      DATABASE_URL: ${DATABASE_URL} 
+      DATABASE_URL: ${DATABASE_URL}
       JWT_SECRET: ${JWT_SECRET}
+      NODE_ENV: development
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     volumes:
-      - ./apps/api-server:/usr/src/app
-      - /usr/src/app/node_modules
+      - ./apps/api-server/src:/usr/src/app/apps/api-server/src
+      - ./apps/api-server/test:/usr/src/app/apps/api-server/test
+    command: npm run start:dev
+
+  web-app:
+    build:
+      context: .
+      dockerfile: ./apps/web-app/Dockerfile
+    container_name: re_note_frontend
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:3000/api}
+    depends_on:
+      - api-server
+    volumes:
+      - ./apps/web-app/src:/usr/src/app/apps/web-app/src
+      - ./apps/web-app/public:/usr/src/app/apps/web-app/public
+    stdin_open: true
+    tty: true
 
 volumes:
   postgres_data:

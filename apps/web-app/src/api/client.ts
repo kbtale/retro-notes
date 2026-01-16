@@ -21,8 +21,12 @@ interface ApiErrorResponse {
 /**
  * Configured Axios instance for API communication
  */
+// Ensure API URL ends with /api
+const envApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const baseURL = envApiUrl.endsWith('/api') ? envApiUrl : `${envApiUrl}/api`;
+
 export const apiClient = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
+    baseURL,
     withCredentials: true, // Required for cookie-based auth
     timeout: 30000, // 30 second timeout
     headers: {

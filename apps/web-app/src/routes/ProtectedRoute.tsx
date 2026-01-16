@@ -13,7 +13,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps): ReactNode {
     if (isLoading) {
         return (
             <div className="flex items-center justify-center min-h-screen">
-                <p>Loading...</p>
+                {/* Render nothing while loading to avoid flash */}
             </div>
         );
     }
