@@ -38,8 +38,9 @@ export function NoteModal({
 }: NoteModalProps): ReactNode {
     const [title, setTitle] = useState(note?.title ?? '');
     const [content, setContent] = useState(note?.content ?? '');
-    const [categoryId, setCategoryId] = useState<string>(
-        note?.categoryId ? String(note.categoryId) : ''
+    // Store selected category ID - for now single select, but send as array to match backend
+    const [selectedCategoryId, setSelectedCategoryId] = useState<string>(
+        note?.categories?.[0]?.id ? String(note.categories[0].id) : ''
     );
 
     const isEditing = !!note;
@@ -49,7 +50,7 @@ export function NoteModal({
         const data = {
             title,
             content,
-            categoryId: categoryId ? Number(categoryId) : undefined,
+            categoryIds: selectedCategoryId ? [Number(selectedCategoryId)] : undefined,
         };
         onSubmit(data);
     }
@@ -97,7 +98,7 @@ export function NoteModal({
                             <label htmlFor="category" className="retro text-sm">
                                 Category
                             </label>
-                            <Select value={categoryId} onValueChange={setCategoryId}>
+                            <Select value={selectedCategoryId} onValueChange={setSelectedCategoryId}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select category (optional)" />
                                 </SelectTrigger>
