@@ -14,7 +14,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-retronotes}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -27,17 +27,15 @@ services:
     ports:
       - "${API_PORT:-3000}:3000"
     environment:
-      # If DATABASE_URL is set in .env (e.g. Neon), it is used.
-      # If not, we default to the local docker db container.
-      DATABASE_URL: ${DATABASE_URL:-postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-retronotes}}
-      JWT_SECRET: ${JWT_SECRET:-dev_secret_key_change_me}
+      DATABASE_URL: ${DATABASE_URL}
+      JWT_SECRET: ${JWT_SECRET}
       NODE_ENV: development
     depends_on:
       db:
         condition: service_healthy
     volumes:
-      - ./apps/api-server/src:/usr/src/app/src
-      - ./apps/api-server/test:/usr/src/app/test
+      - ./apps/api-server/src:/usr/src/app/apps/api-server/src
+      - ./apps/api-server/test:/usr/src/app/apps/api-server/test
     command: npm run start:dev
 
   web-app:
@@ -48,12 +46,12 @@ services:
     ports:
       - "5173:5173"
     environment:
-      VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:3000/api}
     depends_on:
       - api-server
     volumes:
-      - ./apps/web-app/src:/usr/src/app/src
-      - ./apps/web-app/public:/usr/src/app/public
+      - ./apps/web-app/src:/usr/src/app/apps/web-app/src
+      - ./apps/web-app/public:/usr/src/app/apps/web-app/public
     stdin_open: true
     tty: true
 

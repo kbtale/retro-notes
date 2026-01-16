@@ -66,7 +66,7 @@ export function CategoryList({
             {globalCategories.length > 0 && (
                 <>
                     <p className="retro mb-1 mt-2 text-xs text-muted-foreground">
-                        🌐 Global
+                        Global
                     </p>
                     {globalCategories.map((category) => (
                         <Button
@@ -85,7 +85,7 @@ export function CategoryList({
             {personalCategories.length > 0 && (
                 <>
                     <p className="retro mb-1 mt-2 text-xs text-muted-foreground">
-                        👤 My Categories
+                        My Categories
                     </p>
                     {personalCategories.map((category) => (
                         <Button

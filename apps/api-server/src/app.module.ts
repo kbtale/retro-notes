@@ -22,9 +22,8 @@ import { User } from './users/entities/user.entity';
                 url: configService.get('DATABASE_URL'),
                 entities: [Note, Category, User],
                 synchronize: configService.get('NODE_ENV') !== 'production',
-                ssl: {
-                    rejectUnauthorized: false,
-                },
+
+                logging: false, // Disable verbose logging
             }),
         }),
         AuthModule,
