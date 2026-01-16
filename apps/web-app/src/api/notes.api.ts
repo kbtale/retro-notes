@@ -16,7 +16,7 @@ export async function getNotes(filters: NoteFilters = {}): Promise<Note[]> {
 
     const params = new URLSearchParams();
     if (categoryId) params.set('categoryId', String(categoryId));
-    if (isArchived) params.set('isArchived', 'true');
+    params.set('isArchived', String(isArchived));
 
     const response = await apiClient.get<Note[]>(`/notes?${params.toString()}`);
     return response.data;
