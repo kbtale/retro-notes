@@ -42,8 +42,7 @@ coverage/
 .env.test.local
 .env.production.local
 .env.local
-.env.*
-**/ .env*
+!.env.example
 
 # persistence
 pids

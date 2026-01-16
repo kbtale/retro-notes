@@ -1,5 +1,4 @@
-/* eslint-disable react-refresh/only-export-components */
-import { type VariantProps, cva } from "class-variance-authority";
+import { type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 
@@ -7,32 +6,10 @@ import { Button as ShadcnButton } from "@/components/ui/button";
 
 import "./styles/retro.css";
 
-export const buttonVariants = cva("", {
-  variants: {
-    font: {
-      normal: "",
-      retro: "retro",
-    },
-    variant: {
-      default: "bg-foreground text-background hover:bg-foreground/90",
-      destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-      outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
-      secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-      ghost: "hover:bg-accent hover:text-accent-foreground",
-      link: "text-primary underline-offset-4 hover:underline",
-    },
-    size: {
-      default: "h-9 px-4 py-2 has-[>svg]:px-3",
-      sm: "h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5",
-      lg: "h-10 rounded-md px-6 has-[>svg]:px-4",
-      icon: "size-9",
-    },
-  },
-  defaultVariants: {
-    variant: "default",
-    size: "default",
-  },
-});
+// Variants are in a separate file to satisfy React Fast Refresh
+import { buttonVariants } from "./button-variants";
+// eslint-disable-next-line react-refresh/only-export-components
+export { buttonVariants };
 
 export interface BitButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
