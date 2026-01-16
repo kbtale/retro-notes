@@ -6,7 +6,7 @@ export interface Note {
     title: string;
     content: string;
     isArchived: boolean;
-    categoryId: number | null;
+    categories: { id: number; name: string }[];
     userId: number;
     createdAt: string;
     updatedAt: string;
@@ -18,7 +18,7 @@ export interface Note {
 export interface CreateNoteDto {
     title: string;
     content: string;
-    categoryId?: number;
+    categoryIds?: number[];
 }
 
 /**
@@ -27,7 +27,7 @@ export interface CreateNoteDto {
 export interface UpdateNoteDto {
     title?: string;
     content?: string;
-    categoryId?: number;
+    categoryIds?: number[];
     isArchived?: boolean;
 }
 

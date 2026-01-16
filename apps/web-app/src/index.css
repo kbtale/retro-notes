@@ -63,6 +63,11 @@ body {
     font-family: var(--font-font-family);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+}
+
+html, #root {
+    height: 100%;
 }
 
 h1 {

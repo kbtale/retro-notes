@@ -19,7 +19,7 @@ export class NotesService {
     async create(user: User, createNoteDto: CreateNoteDto): Promise<Note> {
         const note = this.notesRepository.create({
             ...createNoteDto,
-            user,
+            user: { id: user.id } as User,
         });
 
         if (createNoteDto.categoryIds && createNoteDto.categoryIds.length > 0) {

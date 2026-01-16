@@ -35,9 +35,11 @@ export class NotesController {
     findAll(
         @GetUser() user: User,
         @Query('categoryId') categoryId?: number,
+        @Query('isArchived') isArchivedStr?: string,
     ): Promise<Note[]> {
-        const filters = categoryId ? { categoryId: Number(categoryId) } : {};
-        return this.notesService.findAll(user, filters);
+        const categoryFilter = categoryId ? Number(categoryId) : undefined;
+        const isArchived = isArchivedStr === 'true' ? true : isArchivedStr === 'false' ? false : undefined;
+        return this.notesService.findAll(user, { categoryId: categoryFilter, isArchived });
     }
 
     @Get('active')

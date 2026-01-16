@@ -1,8 +1,9 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/8bit/button';
-import type { Category } from '@/types';
-import { isGlobalCategory } from '@/types';
+import { Input } from '@/components/ui/8bit/input';
+import { isGlobalCategory, type Category } from '@/types';
+import { useCreateCategory } from '@/hooks/useCategories';
 
 interface CategoryListProps {
     categories: Category[];
@@ -21,6 +22,20 @@ export function CategoryList({
     onToggleArchiveView,
     className,
 }: CategoryListProps): ReactNode {
+    const [isCreating, setIsCreating] = useState(false);
+    const [newCategoryName, setNewCategoryName] = useState('');
+    const createCategoryMutation = useCreateCategory();
+
+    function handleCreateCategory() {
+        if (!newCategoryName.trim()) {
+            setIsCreating(false);
+            return;
+        }
+        createCategoryMutation.mutate({ name: newCategoryName });
+        setNewCategoryName('');
+        setIsCreating(false);
+    }
+    
     // Separate global and personal categories
     const globalCategories = categories.filter(isGlobalCategory);
     const personalCategories = categories.filter((cat) => !isGlobalCategory(cat));
@@ -84,9 +99,45 @@ export function CategoryList({
             {/* Personal Categories */}
             {personalCategories.length > 0 && (
                 <>
-                    <p className="retro mb-1 mt-2 text-xs text-muted-foreground">
-                        My Categories
-                    </p>
+                    <div className="mb-1 mt-2 flex items-center justify-between px-2">
+                        <p className="retro text-xs text-muted-foreground">
+                            My Categories
+                        </p>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={() => setIsCreating(true)}
+                        >
+                            +
+                        </Button>
+                    </div>
+
+                    {isCreating && (
+                        <div className="mb-2 px-2">
+                            <form
+                                onSubmit={(e) => {
+                                    e.preventDefault();
+                                    handleCreateCategory();
+                                }}
+                                className="flex gap-1"
+                            >
+                                <Input
+                                    autoFocus
+                                    value={newCategoryName}
+                                    onChange={(e) => setNewCategoryName(e.target.value)}
+                                    placeholder="Name..."
+                                    className="h-7 text-xs"
+                                    onBlur={() => {
+                                        // Delay to allow submit on enter/click
+                                        setTimeout(() => {
+                                           if (!newCategoryName) setIsCreating(false) 
+                                        }, 200)
+                                    }}
+                                />
+                            </form>
+                        </div>
+                    )}
                     {personalCategories.map((category) => (
                         <Button
                             key={category.id}

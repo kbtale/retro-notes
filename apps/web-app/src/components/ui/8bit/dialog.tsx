@@ -1,4 +1,4 @@
-import { type VariantProps, cva } from "class-variance-authority";
+import { type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 
 import "./styles/retro.css";
+import { dialogContentVariants } from "./dialog-variants";
 
 const Dialog = ShadcnDialog;
 
@@ -29,34 +30,27 @@ const DialogFooter = ShadcnDialogFooter;
 
 export interface BitDialogProps
   extends React.ComponentProps<"div">,
-    VariantProps<typeof dialogContentVariants> {}
+    VariantProps<typeof dialogContentVariants> {
+    hideCloseButton?: boolean;
+}
 
 function DialogTitle({ ...props }: BitDialogProps) {
-  const { className, font } = props;
+  const { className, font, hideCloseButton, ...rest } = props;
   return (
     <ShadcnDialogTitle
       className={cn(font !== "normal" && "retro", className)}
-      {...props}
+      {...rest}
     />
   );
 }
 
-export const dialogContentVariants = cva("", {
-  variants: {
-    font: {
-      normal: "",
-      retro: "retro",
-    },
-  },
-  defaultVariants: {
-    font: "retro",
-  },
-});
+
 
 function DialogContent({
   className,
   children,
   font,
+  hideCloseButton,
   ...props
 }: BitDialogProps) {
   return (
@@ -64,6 +58,7 @@ function DialogContent({
       className={cn(
         "bg-card rounded-none border-none",
         font !== "normal" && "retro",
+        hideCloseButton && "[&>button]:hidden",
         className
       )}
       {...props}

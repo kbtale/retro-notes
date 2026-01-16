@@ -38,8 +38,9 @@ export function NoteModal({
 }: NoteModalProps): ReactNode {
     const [title, setTitle] = useState(note?.title ?? '');
     const [content, setContent] = useState(note?.content ?? '');
-    const [categoryId, setCategoryId] = useState<string>(
-        note?.categoryId ? String(note.categoryId) : ''
+    // Store selected category ID - for now single select, but send as array to match backend
+    const [selectedCategoryId, setSelectedCategoryId] = useState<string>(
+        note?.categories?.[0]?.id ? String(note.categories[0].id) : ''
     );
 
     const isEditing = !!note;
@@ -49,22 +50,22 @@ export function NoteModal({
         const data = {
             title,
             content,
-            categoryId: categoryId ? Number(categoryId) : undefined,
+            categoryIds: selectedCategoryId ? [Number(selectedCategoryId)] : undefined,
         };
         onSubmit(data);
     }
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="sm:max-w-md">
-                <form onSubmit={handleSubmit}>
-                    <DialogHeader>
+            <DialogContent className="sm:max-w-md p-0 overflow-hidden" hideCloseButton>
+                <form onSubmit={handleSubmit} className="flex h-full flex-col max-h-[85vh]">
+                    <DialogHeader className="p-6 pb-2">
                         <DialogTitle>
                             {isEditing ? 'Edit Note' : 'Create Note'}
                         </DialogTitle>
                     </DialogHeader>
 
-                    <div className="flex flex-col gap-4 py-4">
+                    <div className="flex flex-col gap-6 px-6 py-4 overflow-y-auto flex-1">
                         <div className="flex flex-col gap-2">
                             <label htmlFor="title" className="retro text-sm">
                                 Title
@@ -87,8 +88,9 @@ export function NoteModal({
                                 value={content}
                                 onChange={(e) => setContent(e.target.value)}
                                 placeholder="Write your note..."
-                                rows={5}
+                                rows={8}
                                 required
+                                className="min-h-[100px] resize-none"
                             />
                         </div>
 
@@ -96,7 +98,7 @@ export function NoteModal({
                             <label htmlFor="category" className="retro text-sm">
                                 Category
                             </label>
-                            <Select value={categoryId} onValueChange={setCategoryId}>
+                            <Select value={selectedCategoryId} onValueChange={setSelectedCategoryId}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select category (optional)" />
                                 </SelectTrigger>
@@ -111,7 +113,7 @@ export function NoteModal({
                         </div>
                     </div>
 
-                    <DialogFooter className="flex flex-col gap-2 sm:flex-row">
+                    <DialogFooter className="flex flex-col gap-2 p-6 pt-2 sm:flex-row bg-muted/20">
                         <DialogClose asChild>
                             <Button type="button" variant="ghost">
                                 Cancel
@@ -121,8 +123,8 @@ export function NoteModal({
                             {isSubmitting
                                 ? 'Saving...'
                                 : isEditing
-                                  ? 'Save Changes'
-                                  : 'Create Note'}
+                                  ? 'Save'
+                                  : 'Create'}
                         </Button>
                     </DialogFooter>
                 </form>

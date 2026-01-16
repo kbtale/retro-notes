@@ -49,7 +49,7 @@ function Root({ children, className }: RootProps): ReactNode {
 
     return (
         <DashboardContext.Provider value={value}>
-            <div className={cn('min-h-screen bg-background', className)}>
+            <div className={cn('h-screen flex flex-col bg-background', className)}>
                 {children}
             </div>
         </DashboardContext.Provider>
@@ -154,7 +154,7 @@ interface BodyProps {
 
 function Body({ children, className }: BodyProps): ReactNode {
     return (
-        <div className={cn('flex flex-1 flex-col md:flex-row', className)}>
+        <div className={cn('flex flex-1 min-h-0 flex-col md:flex-row', className)}>
             {children}
         </div>
     );
