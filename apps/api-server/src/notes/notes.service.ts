@@ -36,8 +36,20 @@ export class NotesService {
 
     async findAll(
         user: User,
-        filters?: { isArchived?: boolean; categoryId?: number },
-    ): Promise<Note[]> {
+        filters?: {
+            isArchived?: boolean;
+            categoryId?: number;
+            page?: number;
+            limit?: number;
+            sortBy?: 'updatedAt' | 'title' | 'createdAt';
+            sortOrder?: 'ASC' | 'DESC';
+        },
+    ): Promise<{ data: Note[]; total: number; page: number; limit: number }> {
+        const page = filters?.page ?? 1;
+        const limit = filters?.limit ?? 10;
+        const sortBy = filters?.sortBy ?? 'updatedAt';
+        const sortOrder = filters?.sortOrder ?? 'DESC';
+
         const query = this.notesRepository
             .createQueryBuilder('note')
             .leftJoinAndSelect('note.categories', 'category')
@@ -55,7 +67,18 @@ export class NotesService {
             });
         }
 
-        return await query.orderBy('note.updatedAt', 'DESC').getMany();
+        // Pinned notes first, then sort by specified field
+        query
+            .orderBy('note.isPinned', 'DESC')
+            .addOrderBy(`note.${sortBy}`, sortOrder);
+
+        const total = await query.getCount();
+        const data = await query
+            .skip((page - 1) * limit)
+            .take(limit)
+            .getMany();
+
+        return { data, total, page, limit };
     }
 
     // Find one note by ID
@@ -112,13 +135,19 @@ export class NotesService {
         return await this.notesRepository.save(note);
     }
 
+    async togglePin(user: User, id: number): Promise<Note> {
+        const note = await this.findOne(user, id);
+        note.isPinned = !note.isPinned;
+        return await this.notesRepository.save(note);
+    }
+
     // Get active notes (not archived)
-    async findActive(user: User): Promise<Note[]> {
+    async findActive(user: User): Promise<{ data: Note[]; total: number; page: number; limit: number }> {
         return this.findAll(user, { isArchived: false });
     }
 
     // Get archived notes
-    async findArchived(user: User): Promise<Note[]> {
+    async findArchived(user: User): Promise<{ data: Note[]; total: number; page: number; limit: number }> {
         return this.findAll(user, { isArchived: true });
     }
 

@@ -1,17 +1,17 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
 import * as notesApi from '@/api/notes.api';
-import type { Note, CreateNoteDto, UpdateNoteDto, NoteFilters } from '@/types';
+import type { Note, CreateNoteDto, UpdateNoteDto, NoteFilters, PaginatedNotes } from '@/types';
 
 /**
- * Hook to fetch notes with optional filters
+ * Fetch notes with optional filters, pagination, and sorting
  */
 export function useNotes(filters: NoteFilters = {}) {
-    const { categoryId, isArchived = false } = filters;
+    const { categoryId, isArchived = false, page = 1, limit = 10, sortBy, sortOrder } = filters;
 
     return useQuery({
-        queryKey: queryKeys.notes.list({ categoryId, isArchived }),
-        queryFn: () => notesApi.getNotes({ categoryId, isArchived }),
+        queryKey: queryKeys.notes.list({ categoryId, isArchived, page, limit, sortBy, sortOrder }),
+        queryFn: () => notesApi.getNotes({ categoryId, isArchived, page, limit, sortBy, sortOrder }),
     });
 }
 
@@ -56,33 +56,29 @@ export function useUpdateNote() {
 }
 
 /**
- * Hook to toggle archive status with optimistic update
+ * Hook to toggle archive status
  */
 export function useToggleArchive() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: ({ id, isArchived }: { id: number; isArchived: boolean }) =>
-            notesApi.toggleNoteArchive(id, isArchived),
-        onMutate: async ({ id }) => {
-            // Cancel outgoing refetches
+        mutationFn: (id: number) => notesApi.toggleNoteArchive(id),
+        onMutate: async (id) => {
             await queryClient.cancelQueries({ queryKey: queryKeys.notes.all });
 
-            // Snapshot previous data for rollback
-            const previousNotes = queryClient.getQueriesData<Note[]>({
+            const previousNotes = queryClient.getQueriesData<PaginatedNotes>({
                 queryKey: queryKeys.notes.all,
             });
 
             // Optimistically remove from current list
-            queryClient.setQueriesData<Note[]>(
+            queryClient.setQueriesData<PaginatedNotes>(
                 { queryKey: queryKeys.notes.all },
-                (old) => old?.filter((note) => note.id !== id) ?? []
+                (old) => old ? { ...old, data: old.data.filter((note) => note.id !== id) } : undefined
             );
 
             return { previousNotes };
         },
         onError: (_err, _variables, context) => {
-            // Rollback on error
             if (context?.previousNotes) {
                 context.previousNotes.forEach(([queryKey, data]) => {
                     queryClient.setQueryData(queryKey, data);
@@ -90,6 +86,20 @@ export function useToggleArchive() {
             }
         },
         onSettled: () => {
+            void queryClient.invalidateQueries({ queryKey: queryKeys.notes.all });
+        },
+    });
+}
+
+/**
+ * Hook to toggle pin status
+ */
+export function usePinNote() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (id: number) => notesApi.toggleNotePin(id),
+        onSuccess: () => {
             void queryClient.invalidateQueries({ queryKey: queryKeys.notes.all });
         },
     });
@@ -110,4 +120,5 @@ export function useDeleteNote() {
 }
 
 // Re-export types for convenience
-export type { Note, CreateNoteDto, UpdateNoteDto, NoteFilters };
+export type { Note, CreateNoteDto, UpdateNoteDto, NoteFilters, PaginatedNotes };
+

@@ -32,6 +32,9 @@ export class Note {
     @JoinTable()
     categories: Category[];
 
+    @Column({ default: false })
+    isPinned: boolean;
+
     @CreateDateColumn()
     createdAt: Date;
 

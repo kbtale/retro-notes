@@ -1,8 +1,7 @@
-import { useState, useCallback, type ReactNode } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useCallback, type ReactNode } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Dashboard } from '@/components/Dashboard';
 import { NoteGrid } from '@/components/NoteGrid';
-import { NoteModal } from '@/components/NoteModal';
 import { CategoryList } from '@/components/CategoryList';
 import { Button } from '@/components/ui/8bit/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/8bit/alert';
@@ -10,41 +9,44 @@ import { useAuthState } from '@/hooks/useAuthState';
 import { useAuthActions } from '@/hooks/useAuthActions';
 import {
     useNotes,
-    useCreateNote,
-    useUpdateNote,
     useToggleArchive,
     useDeleteNote,
+    usePinNote,
 } from '@/hooks/useNotes';
 import { useCategories } from '@/hooks/useCategories';
-import type { Note, CreateNoteDto, UpdateNoteDto } from '@/types';
+import type { Note, SortBy, SortOrder } from '@/types';
 
 export function DashboardPage(): ReactNode {
     const { user } = useAuthState();
     const { logout } = useAuthActions();
+    const navigate = useNavigate();
 
     const [searchParams, setSearchParams] = useSearchParams();
     const categoryIdParam = searchParams.get('category');
     const isArchiveView = searchParams.get('view') === 'archived';
+    const page = Number(searchParams.get('page') ?? '1');
+    const sortBy = (searchParams.get('sortBy') as SortBy) ?? 'updatedAt';
+    const sortOrder = (searchParams.get('sortOrder') as SortOrder) ?? 'DESC';
 
     const selectedCategoryId = categoryIdParam ? Number(categoryIdParam) : null;
 
     const {
-        data: notes,
+        data: notesResponse,
         isLoading: notesLoading,
         error: notesError,
     } = useNotes({
         categoryId: selectedCategoryId,
         isArchived: isArchiveView,
+        page,
+        limit: 12,
+        sortBy,
+        sortOrder,
     });
     const { data: categories = [], error: categoriesError } = useCategories();
 
-    const createNoteMutation = useCreateNote();
-    const updateNoteMutation = useUpdateNote();
     const toggleArchiveMutation = useToggleArchive();
     const deleteNoteMutation = useDeleteNote();
-
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingNote, setEditingNote] = useState<Note | null>(null);
+    const pinNoteMutation = usePinNote();
 
     const handleSelectCategory = useCallback(
         (id: number | null) => {
@@ -54,6 +56,7 @@ export function DashboardPage(): ReactNode {
                 } else {
                     prev.set('category', String(id));
                 }
+                prev.delete('page'); // Reset to page 1
                 return prev;
             });
         },
@@ -67,42 +70,47 @@ export function DashboardPage(): ReactNode {
             } else {
                 prev.set('view', 'archived');
             }
+            prev.delete('page'); // Reset to page 1
             return prev;
         });
     }, [isArchiveView, setSearchParams]);
 
+    const handlePageChange = useCallback((newPage: number) => {
+        setSearchParams((prev) => {
+            prev.set('page', String(newPage));
+            return prev;
+        });
+    }, [setSearchParams]);
+
+    const handleSortChange = useCallback((newSortBy: SortBy, newSortOrder: SortOrder) => {
+        setSearchParams((prev) => {
+            prev.set('sortBy', newSortBy);
+            prev.set('sortOrder', newSortOrder);
+            prev.delete('page'); // Reset to page 1
+            return prev;
+        });
+    }, [setSearchParams]);
+
     const handleOpenCreate = useCallback(() => {
-        setEditingNote(null);
-        setIsModalOpen(true);
-    }, []);
+        navigate('/notes/new');
+    }, [navigate]);
 
     const handleEdit = useCallback((note: Note) => {
-        setEditingNote(note);
-        setIsModalOpen(true);
-    }, []);
-
-    const handleCloseModal = useCallback(() => {
-        setIsModalOpen(false);
-        setEditingNote(null);
-    }, []);
-
-    const handleSubmitNote = useCallback(
-        async (data: CreateNoteDto | UpdateNoteDto) => {
-            if (editingNote) {
-                await updateNoteMutation.mutateAsync({ id: editingNote.id, data });
-            } else {
-                await createNoteMutation.mutateAsync(data as CreateNoteDto);
-            }
-            handleCloseModal();
-        },
-        [editingNote, createNoteMutation, updateNoteMutation, handleCloseModal]
-    );
+        navigate(`/notes/${note.id}`);
+    }, [navigate]);
 
     const handleArchive = useCallback(
-        (id: number, isArchived: boolean) => {
-            toggleArchiveMutation.mutate({ id, isArchived });
+        (id: number) => {
+            toggleArchiveMutation.mutate(id);
         },
         [toggleArchiveMutation]
+    );
+
+    const handlePin = useCallback(
+        (id: number) => {
+            pinNoteMutation.mutate(id);
+        },
+        [pinNoteMutation]
     );
 
     const handleDelete = useCallback(
@@ -169,25 +177,23 @@ export function DashboardPage(): ReactNode {
                     )}
 
                     <NoteGrid
-                        notes={notes}
+                        notes={notesResponse?.data ?? []}
+                        total={notesResponse?.total ?? 0}
+                        page={notesResponse?.page ?? 1}
+                        limit={notesResponse?.limit ?? 12}
+                        sortBy={sortBy}
+                        sortOrder={sortOrder}
                         isLoading={notesLoading}
                         onEdit={handleEdit}
                         onArchive={handleArchive}
+                        onPin={handlePin}
                         onDelete={handleDelete}
+                        onPageChange={handlePageChange}
+                        onSortChange={handleSortChange}
                     />
                 </Dashboard.Content>
             </Dashboard.Body>
-
-            {/* Key prop forces remount when note changes, ensuring fresh state */}
-            <NoteModal
-                key={editingNote?.id ?? 'new'}
-                isOpen={isModalOpen}
-                onClose={handleCloseModal}
-                onSubmit={(data) => void handleSubmitNote(data)}
-                note={editingNote}
-                categories={categories}
-                isSubmitting={createNoteMutation.isPending || updateNoteMutation.isPending}
-            />
         </Dashboard.Root>
     );
 }
+

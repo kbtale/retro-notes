@@ -10,7 +10,7 @@ export type { User } from './user';
 export type { AuthState, AuthActions, LoginCredentials, LoginResponse } from './auth';
 
 // Note types
-export type { Note, CreateNoteDto, UpdateNoteDto, NoteFilters } from './note';
+export type { Note, CreateNoteDto, UpdateNoteDto, NoteFilters, PaginatedNotes, SortBy, SortOrder } from './note';
 
 // Category types
 export type { Category, CreateCategoryDto, UpdateCategoryDto } from './category';
