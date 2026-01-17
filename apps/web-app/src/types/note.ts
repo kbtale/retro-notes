@@ -6,10 +6,21 @@ export interface Note {
     title: string;
     content: string;
     isArchived: boolean;
+    isPinned: boolean;
     categories: { id: number; name: string }[];
     userId: number;
     createdAt: string;
     updatedAt: string;
+}
+
+/**
+ * Paginated response from the API
+ */
+export interface PaginatedNotes {
+    data: Note[];
+    total: number;
+    page: number;
+    limit: number;
 }
 
 /**
@@ -29,7 +40,11 @@ export interface UpdateNoteDto {
     content?: string;
     categoryIds?: number[];
     isArchived?: boolean;
+    isPinned?: boolean;
 }
+
+export type SortBy = 'updatedAt' | 'title' | 'createdAt';
+export type SortOrder = 'ASC' | 'DESC';
 
 /**
  * Filter options for fetching notes
@@ -37,4 +52,9 @@ export interface UpdateNoteDto {
 export interface NoteFilters {
     categoryId?: number | null;
     isArchived?: boolean;
+    page?: number;
+    limit?: number;
+    sortBy?: SortBy;
+    sortOrder?: SortOrder;
 }
+

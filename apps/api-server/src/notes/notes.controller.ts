@@ -18,6 +18,13 @@ import { GetUser } from '@/auth/decorators/get-user.decorator';
 import { User } from '@/users/entities/user.entity';
 import { Note } from './entities/note.entity';
 
+interface PaginatedNotes {
+    data: Note[];
+    total: number;
+    page: number;
+    limit: number;
+}
+
 @Controller('notes')
 @UseGuards(JwtAuthGuard)
 export class NotesController {
@@ -34,21 +41,35 @@ export class NotesController {
     @Get()
     findAll(
         @GetUser() user: User,
-        @Query('categoryId') categoryId?: number,
+        @Query('categoryId') categoryId?: string,
         @Query('isArchived') isArchivedStr?: string,
-    ): Promise<Note[]> {
+        @Query('page') pageStr?: string,
+        @Query('limit') limitStr?: string,
+        @Query('sortBy') sortBy?: 'updatedAt' | 'title' | 'createdAt',
+        @Query('sortOrder') sortOrder?: 'ASC' | 'DESC',
+    ): Promise<PaginatedNotes> {
         const categoryFilter = categoryId ? Number(categoryId) : undefined;
         const isArchived = isArchivedStr === 'true' ? true : isArchivedStr === 'false' ? false : undefined;
-        return this.notesService.findAll(user, { categoryId: categoryFilter, isArchived });
+        const page = pageStr ? Number(pageStr) : 1;
+        const limit = limitStr ? Number(limitStr) : 10;
+
+        return this.notesService.findAll(user, {
+            categoryId: categoryFilter,
+            isArchived,
+            page,
+            limit,
+            sortBy,
+            sortOrder,
+        });
     }
 
     @Get('active')
-    findActive(@GetUser() user: User): Promise<Note[]> {
+    findActive(@GetUser() user: User): Promise<PaginatedNotes> {
         return this.notesService.findActive(user);
     }
 
     @Get('archived')
-    findArchived(@GetUser() user: User): Promise<Note[]> {
+    findArchived(@GetUser() user: User): Promise<PaginatedNotes> {
         return this.notesService.findArchived(user);
     }
 
@@ -85,6 +106,14 @@ export class NotesController {
         return this.notesService.toggleArchive(user, id);
     }
 
+    @Patch(':id/pin')
+    togglePin(
+        @GetUser() user: User,
+        @Param('id', ParseIntPipe) id: number,
+    ): Promise<Note> {
+        return this.notesService.togglePin(user, id);
+    }
+
     @Post(':noteId/categories/:categoryId')
     addCategory(
         @GetUser() user: User,
@@ -103,3 +132,4 @@ export class NotesController {
         return this.notesService.removeCategory(user, noteId, categoryId);
     }
 }
+

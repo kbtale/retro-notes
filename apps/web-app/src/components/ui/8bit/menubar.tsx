@@ -4,7 +4,7 @@ import * as React from "react";
 
 import * as MenubarPrimitive from "@radix-ui/react-menubar";
 import { cva } from "class-variance-authority";
-import { Circle } from "lucide-react";
+import { Circle } from "@nsmr/pixelart-react";
 
 import { cn } from "@/lib/utils";
 

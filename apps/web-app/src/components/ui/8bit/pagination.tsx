@@ -1,5 +1,5 @@
 import { type VariantProps, cva } from "class-variance-authority";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal } from "@nsmr/pixelart-react";
 
 import { cn } from "@/lib/utils";
 

@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import type { Note, CreateNoteDto, UpdateNoteDto, NoteFilters } from '@/types';
+import type { Note, CreateNoteDto, UpdateNoteDto, NoteFilters, PaginatedNotes } from '@/types';
 
 /**
  * Notes API functions
@@ -7,18 +7,22 @@ import type { Note, CreateNoteDto, UpdateNoteDto, NoteFilters } from '@/types';
  */
 
 /**
- * Fetch all notes with optional filters
- * @param filters - Optional filters for categoryId and isArchived
- * @returns Array of notes
+ * Fetch all notes with optional filters, pagination, and sorting
+ * @param filters - Optional filters, pagination, and sorting options
+ * @returns Paginated notes response
  */
-export async function getNotes(filters: NoteFilters = {}): Promise<Note[]> {
-    const { categoryId, isArchived = false } = filters;
+export async function getNotes(filters: NoteFilters = {}): Promise<PaginatedNotes> {
+    const { categoryId, isArchived = false, page = 1, limit = 10, sortBy, sortOrder } = filters;
 
     const params = new URLSearchParams();
     if (categoryId) params.set('categoryId', String(categoryId));
     params.set('isArchived', String(isArchived));
+    params.set('page', String(page));
+    params.set('limit', String(limit));
+    if (sortBy) params.set('sortBy', sortBy);
+    if (sortOrder) params.set('sortOrder', sortOrder);
 
-    const response = await apiClient.get<Note[]>(`/notes?${params.toString()}`);
+    const response = await apiClient.get<PaginatedNotes>(`/notes?${params.toString()}`);
     return response.data;
 }
 
@@ -56,11 +60,21 @@ export async function updateNote(id: number, data: UpdateNoteDto): Promise<Note>
 /**
  * Toggle the archive status of a note
  * @param id - Note ID
- * @param isArchived - New archive status
  * @returns The updated note
  */
-export async function toggleNoteArchive(id: number, isArchived: boolean): Promise<Note> {
-    return updateNote(id, { isArchived });
+export async function toggleNoteArchive(id: number): Promise<Note> {
+    const response = await apiClient.patch<Note>(`/notes/${id}/archive`);
+    return response.data;
+}
+
+/**
+ * Toggle the pin status of a note
+ * @param id - Note ID
+ * @returns The updated note
+ */
+export async function toggleNotePin(id: number): Promise<Note> {
+    const response = await apiClient.patch<Note>(`/notes/${id}/pin`);
+    return response.data;
 }
 
 /**
@@ -70,3 +84,4 @@ export async function toggleNoteArchive(id: number, isArchived: boolean): Promis
 export async function deleteNote(id: number): Promise<void> {
     await apiClient.delete(`/notes/${id}`);
 }
+
