@@ -27,12 +27,16 @@ export function NoteCard({ note, onEdit, onArchive, onPin, onDelete }: NoteCardP
 
     return (
         <>
-            <Card className="relative flex flex-col transition-transform hover:-translate-y-0.5 h-full">
-                {/* Pinned indicator in top-right corner */}
+            <Card className="relative flex flex-col transition-transform hover:-translate-y-0.5 h-full overflow-visible">
+                {/* Pinned indicator - clickable to unpin */}
                 {note.isPinned && (
-                    <div className="absolute -top-2 -right-2 z-10">
-                        <PixelPushpin size={28} className="drop-shadow-md" />
-                    </div>
+                    <button
+                        onClick={() => onPin(note.id)}
+                        className="absolute -top-5 right-[5%] z-10 cursor-pointer"
+                        aria-label="Unpin note"
+                    >
+                        <PixelPushpin size={40} className="drop-shadow-md hover:scale-110 transition-transform" />
+                    </button>
                 )}
                 <CardHeader className="pb-2">
                     <div className="flex items-start justify-between gap-2">
@@ -42,15 +46,18 @@ export function NoteCard({ note, onEdit, onArchive, onPin, onDelete }: NoteCardP
                     </div>
                 </CardHeader>
                 <CardFooter className="flex justify-end gap-1 pt-2 mt-auto border-t border-border/50">
-                    <Button
-                        variant="default"
-                        size="icon"
-                        onClick={() => onPin(note.id)}
-                        aria-label={note.isPinned ? 'Unpin note' : 'Pin note'}
-                        className="h-8 w-8"
-                    >
-                        <PixelPushpin size={18} gray={!note.isPinned} />
-                    </Button>
+                    {/* Only show pin button when NOT pinned */}
+                    {!note.isPinned && (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => onPin(note.id)}
+                            aria-label="Pin note"
+                            className="h-8 w-8"
+                        >
+                            <PixelPushpin size={18} gray />
+                        </Button>
+                    )}
                     <Button
                         variant="default"
                         size="icon"

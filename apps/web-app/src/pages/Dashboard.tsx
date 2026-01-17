@@ -4,6 +4,7 @@ import { Dashboard } from '@/components/Dashboard';
 import { NoteGrid } from '@/components/NoteGrid';
 import { CategoryList } from '@/components/CategoryList';
 import { Button } from '@/components/ui/8bit/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/8bit/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/8bit/alert';
 import { useAuthState } from '@/hooks/useAuthState';
 import { useAuthActions } from '@/hooks/useAuthActions';
@@ -153,15 +154,41 @@ export function DashboardPage(): ReactNode {
                 </Dashboard.Sidebar>
 
                 <Dashboard.Content>
-                    <div className="mb-6 flex items-center justify-between">
+                    <div className="mb-6 flex items-center justify-between gap-4">
                         <h2 className="retro text-lg font-semibold">
                             {isArchiveView ? 'Archived Notes' : 'My Notes'}
                         </h2>
-                        {!isArchiveView && (
-                            <Button onClick={handleOpenCreate}>
-                                + New Note
-                            </Button>
-                        )}
+                        <div className="flex items-center gap-3">
+                            {!isArchiveView && (
+                                <>
+                                    <div className="flex items-center gap-2">
+                                        <span className="retro text-xs text-muted-foreground">Sort by:</span>
+                                        <Select 
+                                            value={`${sortBy}-${sortOrder}`} 
+                                            onValueChange={(value) => {
+                                                const [newSortBy, newSortOrder] = value.split('-') as [SortBy, SortOrder];
+                                                handleSortChange(newSortBy, newSortOrder);
+                                            }}
+                                        >
+                                            <SelectTrigger className="w-[220px]">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="updatedAt-DESC">Last Updated</SelectItem>
+                                                <SelectItem value="updatedAt-ASC">Oldest Updated</SelectItem>
+                                                <SelectItem value="createdAt-DESC">Newest Created</SelectItem>
+                                                <SelectItem value="createdAt-ASC">Oldest Created</SelectItem>
+                                                <SelectItem value="title-ASC">Title A-Z</SelectItem>
+                                                <SelectItem value="title-DESC">Title Z-A</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <Button onClick={handleOpenCreate}>
+                                        + New Note
+                                    </Button>
+                                </>
+                            )}
+                        </div>
                     </div>
 
                     {/* Error Alert */}
@@ -181,15 +208,12 @@ export function DashboardPage(): ReactNode {
                         total={notesResponse?.total ?? 0}
                         page={notesResponse?.page ?? 1}
                         limit={notesResponse?.limit ?? 12}
-                        sortBy={sortBy}
-                        sortOrder={sortOrder}
                         isLoading={notesLoading}
                         onEdit={handleEdit}
                         onArchive={handleArchive}
                         onPin={handlePin}
                         onDelete={handleDelete}
                         onPageChange={handlePageChange}
-                        onSortChange={handleSortChange}
                     />
                 </Dashboard.Content>
             </Dashboard.Body>
