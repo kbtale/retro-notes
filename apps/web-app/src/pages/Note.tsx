@@ -2,14 +2,16 @@ import { useState, useEffect, useCallback, type FormEvent, type ReactNode } from
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Reload, Close } from '@nsmr/pixelart-react';
 import { toast } from 'sonner';
+import ReactMarkdown from 'react-markdown';
 import { Button } from '@/components/ui/8bit/button';
-import { Card } from '@/components/ui/8bit/card';
 import { Input } from '@/components/ui/8bit/input';
 import { Textarea } from '@/components/ui/8bit/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/8bit/select';
+import { Toggle } from '@/components/ui/8bit/toggle';
+import { AttachmentSidebar } from '@/components/AttachmentSidebar';
 import { useNote, useCreateNote, useUpdateNote } from '@/hooks/useNotes';
 import { useCategories } from '@/hooks/useCategories';
 import { useNoteDraft } from '@/hooks/useNoteDraft';
+import { useUploadMultipleAttachments } from '@/hooks/useAttachments';
 import { Dashboard } from '@/components/Dashboard';
 
 export function Note(): ReactNode {
@@ -28,25 +30,32 @@ export function Note(): ReactNode {
     const [showRestoreBanner, setShowRestoreBanner] = useState(() => hasDraft());
     const savedDraft = getDraft();
 
-    // Initialize state - prefer note data over draft for editing existing notes
+    // Initialize state
     const [title, setTitle] = useState(() => note?.title ?? '');
     const [content, setContent] = useState(() => note?.content ?? '');
-    const [selectedCategoryId, setSelectedCategoryId] = useState<string>(
-        () => note?.categories?.[0]?.id ? String(note.categories[0].id) : ''
+    const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>(
+        () => note?.categories?.map(c => String(c.id)) ?? []
     );
+    // Markdown preview toggle - true = preview, false = write
+    const [showPreview, setShowPreview] = useState(false);
+    // Mobile sidebar visibility
+    const [showSidebar, setShowSidebar] = useState(false);
+    // Staged files for new notes
+    const [stagedFiles, setStagedFiles] = useState<File[]>([]);
 
     const isSaving = createNoteMutation.isPending || updateNoteMutation.isPending;
+    const uploadMultipleMutation = useUploadMultipleAttachments();
 
-    // Auto-save to localStorage on changes (debounced in hook)
+    // Auto-save to localStorage
     useEffect(() => {
-        saveDraft(title, content, selectedCategoryId);
-    }, [title, content, selectedCategoryId, saveDraft]);
+        saveDraft(title, content, selectedCategoryIds.join(','));
+    }, [title, content, selectedCategoryIds, saveDraft]);
 
     const handleRestoreDraft = useCallback(() => {
         if (savedDraft) {
             setTitle(savedDraft.title);
             setContent(savedDraft.content);
-            setSelectedCategoryId(savedDraft.categoryId);
+            setSelectedCategoryIds(savedDraft.categoryId ? savedDraft.categoryId.split(',').filter(Boolean) : []);
             setShowRestoreBanner(false);
             toast.success('Draft restored');
         }
@@ -57,25 +66,52 @@ export function Note(): ReactNode {
         clearDraft();
     }, [clearDraft]);
 
+    // Toggle category selection
+    const handleCategoryToggle = (categoryId: string) => {
+        setSelectedCategoryIds(prev => 
+            prev.includes(categoryId)
+                ? prev.filter(id => id !== categoryId)
+                : [...prev, categoryId]
+        );
+    };
+
     async function handleSubmit(e: FormEvent): Promise<void> {
         e.preventDefault();
         const data = {
             title,
             content,
-            categoryIds: selectedCategoryId ? [Number(selectedCategoryId)] : undefined,
+            categoryIds: selectedCategoryIds.length > 0 
+                ? selectedCategoryIds.map(Number) 
+                : undefined,
         };
 
         try {
             if (isEditing) {
                 await updateNoteMutation.mutateAsync({ id: Number(id), data });
                 toast.success('Note updated successfully');
+                clearDraft();
             } else {
-                await createNoteMutation.mutateAsync(data);
+                const newNote = await createNoteMutation.mutateAsync(data);
                 toast.success('Note created successfully');
+                
+                // Upload staged files if any
+                if (stagedFiles.length > 0) {
+                    try {
+                        await uploadMultipleMutation.mutateAsync({ 
+                            noteId: newNote.id, 
+                            files: stagedFiles 
+                        });
+                        toast.success(`Uploaded ${stagedFiles.length} file(s)`);
+                        setStagedFiles([]); // Clear staged files
+                    } catch {
+                        toast.error('Failed to upload some files');
+                    }
+                }
+                
+                clearDraft();
+                // Navigate to the new note
+                navigate(`/note/${newNote.id}`, { replace: true });
             }
-            // Clear draft on successful save
-            clearDraft();
-            navigate('/dashboard');
         } catch {
             toast.error('Failed to save note. Please try again.');
         }
@@ -91,127 +127,158 @@ export function Note(): ReactNode {
 
     return (
         <Dashboard.Root>
-            <Dashboard.Header>
+            {/* Top Bar */}
+            <Dashboard.Header showBurger={false}>
                 <Button 
                     variant="ghost" 
                     size="sm" 
                     onClick={() => navigate('/dashboard')} 
-                    className="mr-4"
+                    className="mr-2 shrink-0"
                 >
                     <ArrowLeft size={16} className="mr-1" />
                     Back
                 </Button>
-                <div className="flex-1">
-                    <h1 className="retro text-lg font-bold md:text-xl">
-                        {isEditing ? 'Editing Note' : 'New Note'}
-                    </h1>
+
+                {/* Category buttons - hide overflow */}
+                <div className="flex-1 flex items-center gap-2 overflow-hidden min-w-0">
+                    {categories.map((cat) => (
+                        <Button
+                            key={cat.id}
+                            type="button"
+                            variant={selectedCategoryIds.includes(String(cat.id)) ? 'default' : 'ghost'}
+                            size="sm"
+                            onClick={() => handleCategoryToggle(String(cat.id))}
+                            className="shrink-0"
+                        >
+                            {cat.name}
+                        </Button>
+                    ))}
                 </div>
-                <div className="flex items-center gap-2">
+
+                {/* Write/Preview Toggle */}
+                <Toggle
+                    variant="outline"
+                    pressed={showPreview}
+                    onPressedChange={setShowPreview}
+                    className="mx-2 shrink-0"
+                    aria-label="Toggle preview"
+                >
+                    {showPreview ? 'Preview' : 'Write'}
+                </Toggle>
+
+                {/* Last Updated + Save */}
+                <div className="flex items-center gap-3 shrink-0">
+                    {isEditing && note && (
+                        <span className="retro text-xs text-muted-foreground hidden lg:block">
+                            Updated {new Date(note.updatedAt).toLocaleDateString()}
+                        </span>
+                    )}
                     <Button 
                         type="submit" 
                         form="note-form"
                         disabled={isSaving || !title || !content}
                         aria-busy={isSaving}
                     >
-                        {isSaving ? 'Saving...' : 'Save Note'}
+                        {isSaving ? 'Saving...' : 'Save'}
                     </Button>
                 </div>
             </Dashboard.Header>
 
-            <Dashboard.Body className="justify-center overflow-hidden bg-muted/5">
-                {/* Aria-live region for screen reader announcements */}
+            <Dashboard.Body className="overflow-hidden bg-muted/5">
+                {/* Screen reader announcements */}
                 <div aria-live="polite" aria-atomic="true" className="sr-only">
                     {isSaving && 'Saving note...'}
                 </div>
 
-                <main className="w-full max-w-5xl h-full flex flex-col p-4 md:p-8 lg:p-12">
-                    {/* Restore Draft Banner */}
-                    {showRestoreBanner && savedDraft && (
-                        <div className="mb-4 flex items-center justify-between gap-4 p-4 bg-muted/50 border-2 border-dashed border-foreground/30 retro text-sm">
-                            <div className="flex items-center gap-2">
-                                <Reload className="w-4 h-4" />
-                                <span>You have an unsaved draft from {new Date(savedDraft.savedAt).toLocaleString()}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Button size="sm" variant="default" onClick={handleRestoreDraft}>
-                                    Restore
-                                </Button>
-                                <Button size="icon" variant="ghost" onClick={handleDismissRestore} aria-label="Dismiss">
-                                    <Close className="w-4 h-4" />
-                                </Button>
-                            </div>
+                {/* Layout: Attachment sidebar + Editor */}
+                <div className="flex h-full w-full overflow-hidden">
+                    {/* Attachment Sidebar - shows for both new and existing notes */}
+                    <>
+                        {/* Mobile toggle button */}
+                        <button
+                            type="button"
+                            className="fixed bottom-4 left-4 z-20 p-3 bg-foreground text-background retro text-xs block md:hidden"
+                            onClick={() => setShowSidebar(prev => !prev)}
+                        >
+                            {showSidebar ? 'Close' : 'Files'}
+                        </button>
+                        
+                        <div className={showSidebar ? 'block fixed inset-0 z-10 bg-background' : 'hidden md:block'}>
+                            <AttachmentSidebar 
+                                noteId={isEditing ? Number(id) : null} 
+                                onInsertReference={(markdown) => {
+                                    setContent(prev => prev + '\n' + markdown);
+                                    setShowSidebar(false);
+                                }}
+                                stagedFiles={stagedFiles}
+                                onStageFile={(file) => setStagedFiles(prev => [...prev, file])}
+                                onRemoveStagedFile={(index) => setStagedFiles(prev => prev.filter((_, i) => i !== index))}
+                            />
                         </div>
-                    )}
+                    </>
 
-                    <Card className="flex flex-col h-full p-6 md:p-10">
+                    {/* Main Editor */}
+                    <main className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
+                        {/* Restore Draft Banner */}
+                        {showRestoreBanner && savedDraft && (
+                            <div className="flex items-center justify-between gap-4 p-3 bg-muted/50 border-b-6 border-foreground retro text-sm shrink-0">
+                                <div className="flex items-center gap-2 min-w-0">
+                                    <Reload className="w-4 h-4 shrink-0" />
+                                    <span className="truncate">Unsaved draft from {new Date(savedDraft.savedAt).toLocaleString()}</span>
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                    <Button size="sm" variant="default" onClick={handleRestoreDraft}>
+                                        Restore
+                                    </Button>
+                                    <Button size="icon" variant="ghost" onClick={handleDismissRestore} aria-label="Dismiss">
+                                        <Close className="w-4 h-4" />
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+
                         <form 
                             id="note-form" 
                             onSubmit={(e) => void handleSubmit(e)} 
-                            className="flex flex-col gap-8 h-full"
+                            className="flex flex-col flex-1 overflow-hidden"
                         >
-                        <div className="flex flex-col gap-3">
-                            <label htmlFor="title" className="retro text-xs uppercase tracking-wider text-muted-foreground">
-                                Title of the entry
-                            </label>
-                            <Input
-                                id="title"
-                                value={title}
-                                onChange={(e) => setTitle(e.target.value)}
-                                placeholder="A title that captures your thoughts..."
-                                required
-                            />
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-6 py-4 border-y-2 border-dashed border-muted">
-                            <div className="flex flex-col gap-2 min-w-[200px]">
-                                <label htmlFor="category" className="retro text-[10px] uppercase text-muted-foreground">
-                                    Assign Category
-                                </label>
-                                <Select value={selectedCategoryId || 'none'} onValueChange={(val) => setSelectedCategoryId(val === 'none' ? '' : val)}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="General" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="none">General</SelectItem>
-                                        {categories.map((cat) => (
-                                            <SelectItem key={cat.id} value={String(cat.id)}>
-                                                {cat.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                            {/* Title - placeholder only, no label */}
+                            <div className="p-4 border-b-6 border-foreground shrink-0">
+                                <Input
+                                    id="title"
+                                    value={title}
+                                    onChange={(e) => setTitle(e.target.value)}
+                                    placeholder="Title of the entry"
+                                    required
+                                    className="text-lg font-bold border-none shadow-none focus-visible:ring-0 p-0"
+                                />
                             </div>
-                            
-                            {isEditing && note && (
-                                <div className="flex flex-col gap-2">
-                                    <label className="retro text-[10px] uppercase text-muted-foreground">
-                                        Last Updated
-                                    </label>
-                                    <p className="retro text-xs opacity-70">
-                                        {new Date(note.updatedAt).toLocaleDateString()}
-                                    </p>
-                                </div>
-                            )}
-                        </div>
 
-                        <div className="flex-1 flex flex-col gap-3">
-                            <label htmlFor="content" className="retro text-xs uppercase tracking-wider text-muted-foreground">
-                                Your thoughts
-                            </label>
-                            <Textarea
-                                id="content"
-                                value={content}
-                                onChange={(e) => setContent(e.target.value)}
-                                placeholder="Start typing the retro future..."
-                                required
-                            />
-                        </div>
+                            {/* Content - full height editor, no horizontal scroll */}
+                            <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 max-w-full">
+                                {showPreview ? (
+                                    <div className="h-full p-4 prose prose-sm max-w-none dark:prose-invert">
+                                        {content ? (
+                                            <ReactMarkdown>{content}</ReactMarkdown>
+                                        ) : (
+                                            <p className="text-muted-foreground italic">Nothing to preview yet...</p>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <Textarea
+                                        id="content"
+                                        value={content}
+                                        onChange={(e) => setContent(e.target.value)}
+                                        placeholder="Start typing... Supports **bold**, *italic*, # headings, - lists"
+                                        required
+                                        className="h-full w-full resize-none border-none shadow-none focus-visible:ring-0 rounded-none bg-transparent"
+                                    />
+                                )}
+                            </div>
                         </form>
-                    </Card>
-                </main>
+                    </main>
+                </div>
             </Dashboard.Body>
         </Dashboard.Root>
     );
 }
-
-

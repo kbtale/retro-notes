@@ -1,10 +1,14 @@
-import { useCallback, type ReactNode } from 'react';
+import { useCallback, useState, type ReactNode } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { Trash } from '@nsmr/pixelart-react';
+import { toast } from 'sonner';
 import { Dashboard } from '@/components/Dashboard';
 import { NoteGrid } from '@/components/NoteGrid';
 import { CategoryList } from '@/components/CategoryList';
 import { Button } from '@/components/ui/8bit/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/8bit/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/8bit/alert';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { useAuthState } from '@/hooks/useAuthState';
 import { useAuthActions } from '@/hooks/useAuthActions';
 import {
@@ -13,8 +17,8 @@ import {
     useDeleteNote,
     usePinNote,
 } from '@/hooks/useNotes';
-import { useCategories } from '@/hooks/useCategories';
-import type { Note, SortBy, SortOrder } from '@/types';
+import { useCategories, useDeleteCategory } from '@/hooks/useCategories';
+import { isGlobalCategory, type Note, type SortBy, type SortOrder } from '@/types';
 
 export function DashboardPage(): ReactNode {
     const { user } = useAuthState();
@@ -47,6 +51,14 @@ export function DashboardPage(): ReactNode {
     const toggleArchiveMutation = useToggleArchive();
     const deleteNoteMutation = useDeleteNote();
     const pinNoteMutation = usePinNote();
+    const deleteCategoryMutation = useDeleteCategory();
+    const [showDeleteCategoryConfirm, setShowDeleteCategoryConfirm] = useState(false);
+
+    // Get selected category details for delete button
+    const selectedCategory = selectedCategoryId 
+        ? categories.find(c => c.id === selectedCategoryId) 
+        : null;
+    const canDeleteCategory = selectedCategory && !isGlobalCategory(selectedCategory);
 
     const handleSelectCategory = useCallback(
         (id: number | null) => {
@@ -124,6 +136,19 @@ export function DashboardPage(): ReactNode {
         await logout();
     }, [logout]);
 
+    const handleDeleteCategory = () => {
+        if (!selectedCategoryId || !canDeleteCategory) return;
+        deleteCategoryMutation.mutate(selectedCategoryId, {
+            onSuccess: () => {
+                toast.success('Category deleted');
+                handleSelectCategory(null); // Reset to All Categories
+            },
+            onError: () => {
+                toast.error('Failed to delete category');
+            },
+        });
+    };
+
     // Check for errors
     const hasError = notesError ?? categoriesError;
 
@@ -153,15 +178,55 @@ export function DashboardPage(): ReactNode {
                 </Dashboard.Sidebar>
 
                 <Dashboard.Content>
-                    <div className="mb-6 flex items-center justify-between">
-                        <h2 className="retro text-lg font-semibold">
-                            {isArchiveView ? 'Archived Notes' : 'My Notes'}
-                        </h2>
-                        {!isArchiveView && (
-                            <Button onClick={handleOpenCreate}>
-                                + New Note
-                            </Button>
-                        )}
+                    <div className="mb-6">
+                        <div className="flex flex-wrap items-center justify-between gap-4">
+                            <h2 className="retro text-lg font-semibold">
+                                {isArchiveView ? 'Archived Notes' : 'My Notes'}
+                            </h2>
+                            <div className="flex flex-wrap items-center gap-3">
+                                {/* Delete Category button - shows when personal category selected */}
+                                {canDeleteCategory && (
+                                    <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        onClick={() => setShowDeleteCategoryConfirm(true)}
+                                        disabled={deleteCategoryMutation.isPending}
+                                    >
+                                        <Trash className="w-4 h-4 mr-1" />
+                                        Delete
+                                    </Button>
+                                )}
+                                {!isArchiveView && (
+                                    <>
+                                        <div className="flex items-center gap-2">
+                                            <span className="retro text-xs text-muted-foreground whitespace-nowrap">Sort By:</span>
+                                            <Select 
+                                                value={`${sortBy}-${sortOrder}`} 
+                                                onValueChange={(value) => {
+                                                    const [newSortBy, newSortOrder] = value.split('-') as [SortBy, SortOrder];
+                                                    handleSortChange(newSortBy, newSortOrder);
+                                                }}
+                                            >
+                                                <SelectTrigger className="w-[180px] sm:w-[220px]">
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="updatedAt-DESC">Last Updated</SelectItem>
+                                                    <SelectItem value="updatedAt-ASC">Oldest Updated</SelectItem>
+                                                    <SelectItem value="createdAt-DESC">Newest Created</SelectItem>
+                                                    <SelectItem value="createdAt-ASC">Oldest Created</SelectItem>
+                                                    <SelectItem value="title-ASC">Title A-Z</SelectItem>
+                                                    <SelectItem value="title-DESC">Title Z-A</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <Button onClick={handleOpenCreate} className="whitespace-nowrap">
+                                            + New Note
+                                        </Button>
+                                    </>
+                                )}
+                            </div>
+                        </div>
                     </div>
 
                     {/* Error Alert */}
@@ -181,18 +246,26 @@ export function DashboardPage(): ReactNode {
                         total={notesResponse?.total ?? 0}
                         page={notesResponse?.page ?? 1}
                         limit={notesResponse?.limit ?? 12}
-                        sortBy={sortBy}
-                        sortOrder={sortOrder}
                         isLoading={notesLoading}
                         onEdit={handleEdit}
                         onArchive={handleArchive}
                         onPin={handlePin}
                         onDelete={handleDelete}
                         onPageChange={handlePageChange}
-                        onSortChange={handleSortChange}
                     />
                 </Dashboard.Content>
             </Dashboard.Body>
+
+            {/* Delete Category Confirm Dialog */}
+            <ConfirmDialog
+                isOpen={showDeleteCategoryConfirm}
+                onClose={() => setShowDeleteCategoryConfirm(false)}
+                onConfirm={handleDeleteCategory}
+                title="Delete Category"
+                description={`Are you sure you want to delete "${selectedCategory?.name}"? Notes in this category won't be deleted.`}
+                confirmText="Delete"
+                variant="destructive"
+            />
         </Dashboard.Root>
     );
 }
