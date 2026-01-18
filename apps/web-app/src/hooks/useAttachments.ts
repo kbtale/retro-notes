@@ -64,6 +64,36 @@ export function useDeleteAttachment() {
     });
 }
 
+// Upload multiple attachments (for batch upload after note creation)
+export function useUploadMultipleAttachments() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ noteId, files }: { noteId: number; files: File[] }) => {
+            const uploadPromises = files.map(async (file) => {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const response = await apiClient.post<Attachment>(
+                    `/attachments/note/${noteId}`,
+                    formData,
+                    {
+                        headers: {
+                            'Content-Type': 'multipart/form-data',
+                        },
+                    }
+                );
+                return response.data;
+            });
+
+            return await Promise.all(uploadPromises);
+        },
+        onSuccess: (_, { noteId }) => {
+            void queryClient.invalidateQueries({ queryKey: ['attachments', noteId] });
+        },
+    });
+}
+
 // Get download URL for attachment
 export function getAttachmentDownloadUrl(id: number): string {
     return `/api/attachments/${id}/download`;

@@ -11,6 +11,7 @@ import { AttachmentSidebar } from '@/components/AttachmentSidebar';
 import { useNote, useCreateNote, useUpdateNote } from '@/hooks/useNotes';
 import { useCategories } from '@/hooks/useCategories';
 import { useNoteDraft } from '@/hooks/useNoteDraft';
+import { useUploadMultipleAttachments } from '@/hooks/useAttachments';
 import { Dashboard } from '@/components/Dashboard';
 
 export function Note(): ReactNode {
@@ -39,8 +40,11 @@ export function Note(): ReactNode {
     const [showPreview, setShowPreview] = useState(false);
     // Mobile sidebar visibility
     const [showSidebar, setShowSidebar] = useState(false);
+    // Staged files for new notes
+    const [stagedFiles, setStagedFiles] = useState<File[]>([]);
 
     const isSaving = createNoteMutation.isPending || updateNoteMutation.isPending;
+    const uploadMultipleMutation = useUploadMultipleAttachments();
 
     // Auto-save to localStorage
     useEffect(() => {
@@ -85,12 +89,29 @@ export function Note(): ReactNode {
             if (isEditing) {
                 await updateNoteMutation.mutateAsync({ id: Number(id), data });
                 toast.success('Note updated successfully');
+                clearDraft();
             } else {
-                await createNoteMutation.mutateAsync(data);
+                const newNote = await createNoteMutation.mutateAsync(data);
                 toast.success('Note created successfully');
+                
+                // Upload staged files if any
+                if (stagedFiles.length > 0) {
+                    try {
+                        await uploadMultipleMutation.mutateAsync({ 
+                            noteId: newNote.id, 
+                            files: stagedFiles 
+                        });
+                        toast.success(`Uploaded ${stagedFiles.length} file(s)`);
+                        setStagedFiles([]); // Clear staged files
+                    } catch {
+                        toast.error('Failed to upload some files');
+                    }
+                }
+                
+                clearDraft();
+                // Navigate to the new note
+                navigate(`/note/${newNote.id}`, { replace: true });
             }
-            clearDraft();
-            navigate('/dashboard');
         } catch {
             toast.error('Failed to save note. Please try again.');
         }
@@ -107,7 +128,7 @@ export function Note(): ReactNode {
     return (
         <Dashboard.Root>
             {/* Top Bar */}
-            <Dashboard.Header>
+            <Dashboard.Header showBurger={false}>
                 <Button 
                     variant="ghost" 
                     size="sm" 
@@ -171,33 +192,30 @@ export function Note(): ReactNode {
 
                 {/* Layout: Attachment sidebar + Editor */}
                 <div className="flex h-full w-full overflow-hidden">
-                    {/* Attachment Sidebar - hidden on mobile by default */}
-                    {isEditing && (
-                        <>
-                            {/* Mobile toggle button */}
-                            <button
-                                className="md:hidden fixed bottom-4 left-4 z-20 p-2 bg-foreground text-background retro text-xs border-4 border-foreground"
-                                onClick={() => setShowSidebar(!showSidebar)}
-                            >
-                                {showSidebar ? 'Hide' : 'Files'}
-                            </button>
-                            {/* Sidebar - always visible on desktop, toggleable on mobile */}
-                            <div className={`
-                                ${showSidebar ? 'flex' : 'hidden'} md:flex
-                                fixed md:relative inset-0 md:inset-auto z-10 md:z-auto
-                                bg-background/95 md:bg-transparent
-                                h-full shrink-0
-                            `}>
-                                <AttachmentSidebar 
-                                    noteId={Number(id)} 
-                                    onInsertReference={(markdown) => {
-                                        setContent(prev => prev + '\n' + markdown);
-                                        setShowSidebar(false);
-                                    }}
-                                />
-                            </div>
-                        </>
-                    )}
+                    {/* Attachment Sidebar - shows for both new and existing notes */}
+                    <>
+                        {/* Mobile toggle button */}
+                        <button
+                            type="button"
+                            className="fixed bottom-4 left-4 z-20 p-3 bg-foreground text-background retro text-xs block md:hidden"
+                            onClick={() => setShowSidebar(prev => !prev)}
+                        >
+                            {showSidebar ? 'Close' : 'Files'}
+                        </button>
+                        
+                        <div className={showSidebar ? 'block fixed inset-0 z-10 bg-background' : 'hidden md:block'}>
+                            <AttachmentSidebar 
+                                noteId={isEditing ? Number(id) : null} 
+                                onInsertReference={(markdown) => {
+                                    setContent(prev => prev + '\n' + markdown);
+                                    setShowSidebar(false);
+                                }}
+                                stagedFiles={stagedFiles}
+                                onStageFile={(file) => setStagedFiles(prev => [...prev, file])}
+                                onRemoveStagedFile={(index) => setStagedFiles(prev => prev.filter((_, i) => i !== index))}
+                            />
+                        </div>
+                    </>
 
                     {/* Main Editor */}
                     <main className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
@@ -236,10 +254,10 @@ export function Note(): ReactNode {
                                 />
                             </div>
 
-                            {/* Content - full height editor */}
-                            <div className="flex-1 overflow-auto min-h-0">
+                            {/* Content - full height editor, no horizontal scroll */}
+                            <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 max-w-full">
                                 {showPreview ? (
-                                    <div className="h-full p-4 overflow-auto prose prose-sm max-w-none dark:prose-invert">
+                                    <div className="h-full p-4 prose prose-sm max-w-none dark:prose-invert">
                                         {content ? (
                                             <ReactMarkdown>{content}</ReactMarkdown>
                                         ) : (
@@ -253,7 +271,7 @@ export function Note(): ReactNode {
                                         onChange={(e) => setContent(e.target.value)}
                                         placeholder="Start typing... Supports **bold**, *italic*, # headings, - lists"
                                         required
-                                        className="h-full w-full resize-none border-none shadow-none focus-visible:ring-0 rounded-none"
+                                        className="h-full w-full resize-none border-none shadow-none focus-visible:ring-0 rounded-none bg-transparent"
                                     />
                                 )}
                             </div>

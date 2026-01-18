@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 import { NoteCard } from '@/components/NoteCard';
-import { Skeleton } from '@/components/ui/8bit/skeleton';
 import {
     Pagination,
     PaginationContent,
@@ -38,14 +37,9 @@ export function NoteGrid({
 }: NoteGridProps): ReactNode {
     const totalPages = Math.ceil(total / limit);
 
+
     if (isLoading) {
-        return (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {Array.from({ length: 8 }).map((_, i) => (
-                    <Skeleton key={i} className="h-40 w-full" />
-                ))}
-            </div>
-        );
+        return null; // No placeholder during loading
     }
 
     if (!notes || notes.length === 0) {

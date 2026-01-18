@@ -160,20 +160,20 @@ h1 {
     }
 }
 
-/* Custom 8-bit Scrollbar - black bar only, no arrows */
+/* Custom 8-bit Scrollbar - black bar only, no arrows, no rounding */
 ::-webkit-scrollbar {
-  width: 12px;
-  height: 12px;
+  width: 16px;
+  height: 16px;
 }
 
 ::-webkit-scrollbar-track {
   background: var(--background);
-  border-left: 2px solid var(--foreground);
 }
 
 ::-webkit-scrollbar-thumb {
   background: var(--foreground);
   border: none;
+  border-radius: 0;
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -186,7 +186,7 @@ h1 {
 
 /* Firefox scrollbar */
 * {
-  scrollbar-width: thin;
+  scrollbar-width: auto;
   scrollbar-color: var(--foreground) var(--background);
 }
 
@@ -195,4 +195,5 @@ html, body {
   overflow-x: hidden;
   max-width: 100vw;
 }
+
 

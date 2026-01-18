@@ -44,6 +44,7 @@ export class CategoriesService {
     async findAllForUser(user: User): Promise<Category[]> {
         return await this.categoriesRepository.find({
             where: [{ user: { id: user.id } }, { user: IsNull() }],
+            relations: ['user'], // Load user relation to distinguish global vs personal
             order: { name: 'ASC' },
         });
     }
