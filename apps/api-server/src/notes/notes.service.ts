@@ -115,6 +115,9 @@ export class NotesService {
             note.categories = categories;
         }
 
+        // Explicitly update timestamp for content changes
+        note.updatedAt = new Date();
+
         return await this.notesRepository.save(note);
     }
 
@@ -131,14 +134,16 @@ export class NotesService {
 
     async toggleArchive(user: User, id: number): Promise<Note> {
         const note = await this.findOne(user, id);
+        await this.notesRepository.update(id, { isArchived: !note.isArchived });
         note.isArchived = !note.isArchived;
-        return await this.notesRepository.save(note);
+        return note;
     }
 
     async togglePin(user: User, id: number): Promise<Note> {
         const note = await this.findOne(user, id);
+        await this.notesRepository.update(id, { isPinned: !note.isPinned });
         note.isPinned = !note.isPinned;
-        return await this.notesRepository.save(note);
+        return note;
     }
 
     // Get active notes (not archived)

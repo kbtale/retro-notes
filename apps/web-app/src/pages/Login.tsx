@@ -38,7 +38,15 @@ export function LoginPage(): ReactNode {
     }
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <div 
+            className="flex min-h-screen items-center justify-center bg-background p-4"
+            style={{
+                backgroundImage: "url('/images/loginbg_pixel.png')",
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat'
+            }}
+        >
             <Card className="w-full max-w-md">
                 <CardHeader className="text-center">
                     <CardTitle className="text-2xl">RetroNotes</CardTitle>
