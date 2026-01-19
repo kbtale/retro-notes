@@ -7,7 +7,6 @@ import {
     OneToMany,
     JoinTable,
     CreateDateColumn,
-    UpdateDateColumn,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Category } from '../../categories/entities/category.entity';
@@ -43,6 +42,6 @@ export class Note {
     @CreateDateColumn()
     createdAt: Date;
 
-    @UpdateDateColumn()
+    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
     updatedAt: Date;
 }

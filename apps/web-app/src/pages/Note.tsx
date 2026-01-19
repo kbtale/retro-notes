@@ -1,18 +1,25 @@
-import { useState, useEffect, useCallback, type FormEvent, type ReactNode } from 'react';
+import { useState, useEffect, useCallback, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useForm, useWatch } from 'react-hook-form';
 import { ArrowLeft, Reload, Close } from '@nsmr/pixelart-react';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
 import { Button } from '@/components/ui/8bit/button';
 import { Input } from '@/components/ui/8bit/input';
-import { Textarea } from '@/components/ui/8bit/textarea';
 import { Toggle } from '@/components/ui/8bit/toggle';
 import { AttachmentSidebar } from '@/components/AttachmentSidebar';
+import { CategoryMultiSelect } from '@/components/CategoryMultiSelect';
 import { useNote, useCreateNote, useUpdateNote } from '@/hooks/useNotes';
 import { useCategories } from '@/hooks/useCategories';
 import { useNoteDraft } from '@/hooks/useNoteDraft';
 import { useUploadMultipleAttachments } from '@/hooks/useAttachments';
 import { Dashboard } from '@/components/Dashboard';
+
+interface NoteFormData {
+    title: string;
+    content: string;
+    categoryIds: string[];
+}
 
 export function Note(): ReactNode {
     const { id } = useParams<{ id: string }>();
@@ -30,12 +37,18 @@ export function Note(): ReactNode {
     const [showRestoreBanner, setShowRestoreBanner] = useState(() => hasDraft());
     const savedDraft = getDraft();
 
-    // Initialize state
-    const [title, setTitle] = useState(() => note?.title ?? '');
-    const [content, setContent] = useState(() => note?.content ?? '');
-    const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>(
-        () => note?.categories?.map(c => String(c.id)) ?? []
-    );
+    // React Hook Form
+    const { register, reset, handleSubmit: rhfHandleSubmit, control, setValue } = useForm<NoteFormData>({
+        defaultValues: {
+            title: '',
+            content: '',
+            categoryIds: []
+        }
+    });
+
+    // Watch form values for autosave
+    const formValues = useWatch({ control });
+
     // Markdown preview toggle - true = preview, false = write
     const [showPreview, setShowPreview] = useState(false);
     // Mobile sidebar visibility
@@ -46,52 +59,59 @@ export function Note(): ReactNode {
     const isSaving = createNoteMutation.isPending || updateNoteMutation.isPending;
     const uploadMultipleMutation = useUploadMultipleAttachments();
 
+    // Sync server data to form when note loads
+    useEffect(() => {
+        if (note && isEditing) {
+            reset({
+                title: note.title,
+                content: note.content,
+                categoryIds: note.categories?.map(c => String(c.id)) ?? []
+            });
+        }
+    }, [note?.id, isEditing, reset]);
+
     // Auto-save to localStorage
     useEffect(() => {
-        saveDraft(title, content, selectedCategoryIds.join(','));
-    }, [title, content, selectedCategoryIds, saveDraft]);
+        saveDraft(
+            formValues.title ?? '',
+            formValues.content ?? '',
+            formValues.categoryIds?.join(',') ?? ''
+        );
+    }, [formValues, saveDraft]);
 
     const handleRestoreDraft = useCallback(() => {
         if (savedDraft) {
-            setTitle(savedDraft.title);
-            setContent(savedDraft.content);
-            setSelectedCategoryIds(savedDraft.categoryId ? savedDraft.categoryId.split(',').filter(Boolean) : []);
+            reset({
+                title: savedDraft.title,
+                content: savedDraft.content,
+                categoryIds: savedDraft.categoryId ? savedDraft.categoryId.split(',').filter(Boolean) : []
+            }, { keepDirty: true });
             setShowRestoreBanner(false);
             toast.success('Draft restored');
         }
-    }, [savedDraft]);
+    }, [savedDraft, reset]);
 
     const handleDismissRestore = useCallback(() => {
         setShowRestoreBanner(false);
         clearDraft();
     }, [clearDraft]);
 
-    // Toggle category selection
-    const handleCategoryToggle = (categoryId: string) => {
-        setSelectedCategoryIds(prev => 
-            prev.includes(categoryId)
-                ? prev.filter(id => id !== categoryId)
-                : [...prev, categoryId]
-        );
-    };
-
-    async function handleSubmit(e: FormEvent): Promise<void> {
-        e.preventDefault();
-        const data = {
-            title,
-            content,
-            categoryIds: selectedCategoryIds.length > 0 
-                ? selectedCategoryIds.map(Number) 
+    const onSubmit = rhfHandleSubmit(async (data) => {
+        const payload = {
+            title: data.title,
+            content: data.content,
+            categoryIds: data.categoryIds.length > 0 
+                ? data.categoryIds.map(Number) 
                 : undefined,
         };
 
         try {
             if (isEditing) {
-                await updateNoteMutation.mutateAsync({ id: Number(id), data });
+                await updateNoteMutation.mutateAsync({ id: Number(id), data: payload });
                 toast.success('Note updated successfully');
                 clearDraft();
             } else {
-                const newNote = await createNoteMutation.mutateAsync(data);
+                const newNote = await createNoteMutation.mutateAsync(payload);
                 toast.success('Note created successfully');
                 
                 // Upload staged files if any
@@ -115,7 +135,7 @@ export function Note(): ReactNode {
         } catch {
             toast.error('Failed to save note. Please try again.');
         }
-    }
+    });
 
     if (isEditing && noteLoading) {
         return (
@@ -139,21 +159,13 @@ export function Note(): ReactNode {
                     Back
                 </Button>
 
-                {/* Category buttons - hide overflow */}
-                <div className="flex-1 flex items-center gap-2 overflow-hidden min-w-0">
-                    {categories.map((cat) => (
-                        <Button
-                            key={cat.id}
-                            type="button"
-                            variant={selectedCategoryIds.includes(String(cat.id)) ? 'default' : 'ghost'}
-                            size="sm"
-                            onClick={() => handleCategoryToggle(String(cat.id))}
-                            className="shrink-0"
-                        >
-                            {cat.name}
-                        </Button>
-                    ))}
-                </div>
+                {/* Category dropdown */}
+                <CategoryMultiSelect
+                    categories={categories}
+                    selectedIds={formValues.categoryIds ?? []}
+                    onSelectionChange={(ids) => setValue('categoryIds', ids, { shouldDirty: true })}
+                    placeholder="Categories"
+                />
 
                 {/* Write/Preview Toggle */}
                 <Toggle
@@ -176,7 +188,7 @@ export function Note(): ReactNode {
                     <Button 
                         type="submit" 
                         form="note-form"
-                        disabled={isSaving || !title || !content}
+                        disabled={isSaving || !formValues.title || !formValues.content}
                         aria-busy={isSaving}
                     >
                         {isSaving ? 'Saving...' : 'Save'}
@@ -203,11 +215,12 @@ export function Note(): ReactNode {
                             {showSidebar ? 'Close' : 'Files'}
                         </button>
                         
-                        <div className={showSidebar ? 'block fixed inset-0 z-10 bg-background' : 'hidden md:block'}>
+                        {/* Sidebar wrapper - on mobile: fixed below topbar, on desktop: inline */}
+                        <div className={showSidebar ? 'block fixed top-16 left-0 right-0 bottom-0 z-10 bg-background' : 'hidden md:block'}>
                             <AttachmentSidebar 
                                 noteId={isEditing ? Number(id) : null} 
                                 onInsertReference={(markdown) => {
-                                    setContent(prev => prev + '\n' + markdown);
+                                    setValue('content', (formValues.content ?? '') + '\n' + markdown);
                                     setShowSidebar(false);
                                 }}
                                 stagedFiles={stagedFiles}
@@ -239,39 +252,37 @@ export function Note(): ReactNode {
 
                         <form 
                             id="note-form" 
-                            onSubmit={(e) => void handleSubmit(e)} 
+                            onSubmit={onSubmit} 
                             className="flex flex-col flex-1 overflow-hidden"
                         >
                             {/* Title - placeholder only, no label */}
                             <div className="p-4 border-b-6 border-foreground shrink-0">
                                 <Input
                                     id="title"
-                                    value={title}
-                                    onChange={(e) => setTitle(e.target.value)}
+                                    {...register('title')}
                                     placeholder="Title of the entry"
                                     required
                                     className="text-lg font-bold border-none shadow-none focus-visible:ring-0 p-0"
                                 />
                             </div>
 
-                            {/* Content - full height editor, no horizontal scroll */}
-                            <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 max-w-full">
+                            {/* Content - full height editor */}
+                            <div className="flex-1 min-h-0">
                                 {showPreview ? (
-                                    <div className="h-full p-4 prose prose-sm max-w-none dark:prose-invert">
-                                        {content ? (
-                                            <ReactMarkdown>{content}</ReactMarkdown>
+                                    <div className="h-full p-4 overflow-y-auto prose prose-sm max-w-none dark:prose-invert">
+                                        {formValues.content ? (
+                                            <ReactMarkdown>{formValues.content}</ReactMarkdown>
                                         ) : (
                                             <p className="text-muted-foreground italic">Nothing to preview yet...</p>
                                         )}
                                     </div>
                                 ) : (
-                                    <Textarea
+                                    <textarea
                                         id="content"
-                                        value={content}
-                                        onChange={(e) => setContent(e.target.value)}
+                                        {...register('content')}
                                         placeholder="Start typing... Supports **bold**, *italic*, # headings, - lists"
                                         required
-                                        className="h-full w-full resize-none border-none shadow-none focus-visible:ring-0 rounded-none bg-transparent"
+                                        className="retro h-full w-full p-4 resize-none border-none bg-transparent focus:outline-none focus:ring-0"
                                     />
                                 )}
                             </div>

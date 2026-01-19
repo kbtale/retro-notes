@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/8bit/button';
 import { Input } from '@/components/ui/8bit/input';
 import { isGlobalCategory, type Category } from '@/types';
 import { useCreateCategory } from '@/hooks/useCategories';
+import { useAuthState } from '@/hooks/useAuthState';
+import { useAuthActions } from '@/hooks/useAuthActions';
 
 interface CategoryListProps {
     categories: Category[];
@@ -25,6 +27,8 @@ export function CategoryList({
     const [isCreating, setIsCreating] = useState(false);
     const [newCategoryName, setNewCategoryName] = useState('');
     const createCategoryMutation = useCreateCategory();
+    const { user } = useAuthState();
+    const { logout } = useAuthActions();
 
     function handleCreateCategory() {
         if (!newCategoryName.trim()) {
@@ -150,6 +154,25 @@ export function CategoryList({
                     ))}
                 </>
             )}
+            
+            {/* Mobile-only User Profile & Logout */}
+            <div className="mt-auto pt-4 border-t-4 border-foreground md:hidden">
+                <div className="flex items-center gap-3 px-2 mb-2">
+                    <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold retro text-xs">
+                        {user?.username?.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="retro text-xs font-bold truncate">
+                        {user?.username}
+                    </div>
+                </div>
+                <Button 
+                    variant="ghost" 
+                    className="w-full justify-start text-destructive hover:text-destructive"
+                    onClick={() => void logout()}
+                >
+                    Logout
+                </Button>
+            </div>
         </nav>
     );
 }

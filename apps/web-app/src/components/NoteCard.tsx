@@ -48,15 +48,13 @@ export function NoteCard({ note, onEdit, onArchive, onPin, onDelete }: NoteCardP
                 <CardFooter className="flex justify-end gap-1 pt-2 mt-auto border-t border-border/50">
                     {/* Only show pin button when NOT pinned */}
                     {!note.isPinned && (
-                        <Button
-                            variant="ghost"
-                            size="icon"
+                        <button
                             onClick={() => onPin(note.id)}
                             aria-label="Pin note"
-                            className="h-8 w-8"
+                            className="inline-flex items-center justify-center h-8 w-8 rounded-md transition-colors hover:bg-transparent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                         >
-                            <PixelPushpin size={18} gray />
-                        </Button>
+                            <PixelPushpin size={18} gray className="hover:scale-110 transition-transform" />
+                        </button>
                     )}
                     <Button
                         variant="default"

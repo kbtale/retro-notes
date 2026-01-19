@@ -29,11 +29,11 @@ export function AttachmentSidebar({
     onStageFile,
     onRemoveStagedFile 
 }: AttachmentSidebarProps): ReactNode {
+    const isNewNote = !noteId;
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { data: attachments = [], isLoading } = useAttachments(noteId);
     const uploadMutation = useUploadAttachment();
     const deleteMutation = useDeleteAttachment();
-    const isNewNote = noteId === null;
 
     const handleFileSelect = useCallback(async (files: FileList | null) => {
         if (!files || files.length === 0) return;
