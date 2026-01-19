@@ -14,6 +14,8 @@ This application was created using a containerized monorepo, and the frotend was
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL_17-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 
+https://github.com/user-attachments/assets/2c9199db-4307-46bf-8844-423c49e5076d
+
 </div>
 
 ## Project Overview
