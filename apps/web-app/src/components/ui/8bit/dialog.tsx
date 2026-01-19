@@ -56,7 +56,7 @@ function DialogContent({
   return (
     <ShadcnDialogContent
       className={cn(
-        "bg-card rounded-none border-none",
+        "bg-card rounded-none sm:rounded-none border-none",
         font !== "normal" && "retro",
         hideCloseButton && "[&>button]:hidden",
         className

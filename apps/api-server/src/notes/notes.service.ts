@@ -103,8 +103,11 @@ export class NotesService {
     ): Promise<Note> {
         const note = await this.findOne(user, id);
 
-        // Update basic fields
-        Object.assign(note, updateNoteDto);
+        // Extract DTO-only fields (categoryIds is handled separately via relation)
+        const { categoryIds, ...entityFields } = updateNoteDto;
+
+        // Update only entity-compatible fields
+        Object.assign(note, entityFields);
 
         if (updateNoteDto.categoryIds !== undefined) {
             const categories = await this.categoriesRepository.find({
